@@ -67,14 +67,17 @@ sub run_tox_cmd {
     my $bci_reruns = get_var('BCI_RERUNS', 3);
     my $bci_reruns_delay = get_var('BCI_RERUNS_DELAY', 10);
     my $cmd = "tox -e $env -- -n auto";
-    $cmd .= " -k $bci_marker" if $bci_marker;
+    $cmd .= " -k \"$bci_marker\" " if $bci_marker;
     $cmd .= " --reruns $bci_reruns --reruns-delay $bci_reruns_delay";
     record_info("tox", "Running command: $cmd");
     my $ret = script_run("timeout $bci_timeout $cmd", timeout => ($bci_timeout + 3));
+    print STDERR "+++ return code: $ret\n";
     if ($ret == 124) {
         # man timeout: If  the command times out, and --preserve-status is not set, then exit with status 124.
         record_soft_failure("The command <tox -e $env> timed out.");
         $error_count += 1;
+    } elsif ($ret == 5) { # BCI test filter match is empty
+        record_soft_failure("The command <tox -e $env> has not test to run.");
     } elsif ($ret != 0) {
         record_soft_failure("The command <tox -e $env> failed.");
         $error_count += 1;
