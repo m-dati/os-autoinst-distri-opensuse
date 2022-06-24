@@ -21,6 +21,7 @@ use version_utils qw(is_sle);
 use mmapi 'get_current_job_id';
 use registration qw(add_suseconnect_product get_addon_fullname);
 use containers::k8s;
+use publiccloud::utils qw(gcloud_install);
 
 sub run {
     my ($self, $run_args) = @_;
@@ -63,7 +64,15 @@ sub run {
             $provider = publiccloud::aks->new();
         }
         elsif ($k8s_backend eq 'GKE') {
-            die('GKE is not implemented yet');
+            add_suseconnect_product(get_addon_fullname('pcm')) if is_sle;
+            gcloud_install();
+
+            # package needed by init():
+            (is_sle('=15-SP4'))
+              ? zypper_call("in chrony", timeout => 300)
+              : zypper_call("in ntp", timeout => 300);
+
+            $provider = publiccloud::gke->new();
         }
         else {
             die('Unknown service given');
@@ -75,7 +84,8 @@ sub run {
     install_helm();
 
     # Add repo, search and show values
-    assert_script_run("helm repo add bitnami https://charts.bitnami.com/bitnami", 180);
+    assert_script_run(
+        "helm repo add bitnami https://charts.bitnami.com/bitnami", 180);
     assert_script_run("helm repo update", 180);
     assert_script_run("helm search repo apache");
     assert_script_run("helm show all $chart");
