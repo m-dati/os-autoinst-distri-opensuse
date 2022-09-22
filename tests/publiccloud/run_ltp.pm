@@ -142,11 +142,11 @@ sub run {
     assert_script_run($log_start_cmd);
 
     zypper_call("in -y python3-paramiko python3-scp");
- 
+    my $timeout = get_var('LTP_TIMEOUT', 30 * 60);
     my $cmd = 'python3 runltp-ng/runltp-ng ';
     $cmd .= "--json-report=$root_dir/result.json ";
     $cmd .= '--verbose ';
-    $cmd .= '--suite-timeout=2400 ';
+    $cmd .= '--suite-timeout=' . $timeout . ' ';
     $cmd .= '--run-suite ' . get_required_var('LTP_COMMAND_FILE') . ' ';
     $cmd .= '--skip-tests \'' . get_var('LTP_COMMAND_EXCLUDE') . '\' ' if get_var('LTP_COMMAND_EXCLUDE');
     $cmd .= '--sut=ssh';
@@ -155,7 +155,8 @@ sub run {
     $cmd .= ':key_file=' . $instance->ssh_key;
     $cmd .= ':host=' . $instance->public_ip;
     $cmd .= ':reset_command=\'' . $reset_cmd . '\'';
-    assert_script_run($cmd, timeout => get_var('LTP_TIMEOUT', 30 * 60));
+#    assert_script_run($cmd, timeout => $get_var('LTP_TIMEOUT', 30 * 60));
+    assert_script_run($cmd, timeout => $timeout);
 }
 
 
