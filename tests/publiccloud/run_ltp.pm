@@ -142,7 +142,7 @@ sub run {
 
     zypper_call("in -y python3-paramiko python3-scp");
 
-    my $ltp_suite_timeout=1200;
+    my $ltp_suite_timeout=7200;  # 2h
 
     my $sut_opt= '--sut=ssh';
     $sut_opt .= ':user=' . $instance->username;
