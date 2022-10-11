@@ -34,6 +34,7 @@
           <li><a href="#qesap_execute">qesap_execute</a></li>
           <li><a href="#qesap_get_inventory">qesap_get_inventory</a></li>
           <li><a href="#qesap_prepare_env">qesap_prepare_env</a></li>
+          <li><a href="#qesap_ansible_cmd">qesap_ansible_cmd</a></li>
         </ul>
       </li>
     </ul>
@@ -179,7 +180,7 @@
 <pre><code>    qesap_execute(cmd =&gt; $qesap_script_cmd [, verbose =&gt; 1, cmd_options =&gt; $cmd_options] );
     cmd_options - allows to append additional qesap.py commans arguments like &quot;qesap.py terraform -d&quot;
         Example:
-        qesap_execute(cmd =&gt; &#39;terraform&#39;, cmd =&gt; &#39;-d&#39;) will result in:
+        qesap_execute(cmd =&gt; &#39;terraform&#39;, cmd_options =&gt; &#39;-d&#39;) will result in:
         qesap.py terraform -d
 
     Execute qesap glue script commands. Check project documentation for available options:
@@ -201,6 +202,33 @@
     - generates config files with qesap script
 
     For variables example see &#39;qesap_yaml_replace&#39;</code></pre>
+
+<h3 id="qesap_ansible_cmd">qesap_ansible_cmd</h3>
+
+<pre><code>    Use Ansible to run a command remotely on some or all
+    the hosts from the inventory.yaml
+
+    qesap_prepare_env(cmd=&gt;{string}, provider =&gt; &#39;aws&#39;);</code></pre>
+
+<dl>
+
+<dt id="PROVIDER---Cloud-provider-name-used-to-find-the-inventory"><b>PROVIDER</b> - Cloud provider name, used to find the inventory</dt>
+<dd>
+
+</dd>
+<dt id="CMD---command-to-run-remotely"><b>CMD</b> - command to run remotely</dt>
+<dd>
+
+</dd>
+<dt id="USER---user-on-remote-host-default-to-cloudadmin"><b>USER</b> - user on remote host, default to &#39;cloudadmin&#39;</dt>
+<dd>
+
+</dd>
+<dt id="FILTER---filter-hosts-in-the-inventory"><b>FILTER</b> - filter hosts in the inventory</dt>
+<dd>
+
+</dd>
+</dl>
 
 
 </body>
