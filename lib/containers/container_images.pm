@@ -260,8 +260,8 @@ sub test_systemd_install {
     if ($image_id eq 'opensuse-tumbleweed' ||
         ($image_id eq 'opensuse-leap' && check_version('>=15.4', "$image_version.$image_sp", qr/\d{2}\.\d/)) ||
         ($image_id eq 'sles' && check_version('>=15-SP4', "$image_version-SP$image_sp", qr/\d{2}-sp\d/))) {
-        my $precmd = "cp -p /etc/SUSEConnect /root && sed -i 's/all-/default/' /root/SUSEConnect && cp -p /root/SUSEConnect /etc";
-        assert_script_run("$runtime run $image /bin/bash -c \"$precmd && zypper al udev && zypper -n in systemd\" ", timeout => 300);
+        my $default_connect_cmd = "cp /dev/null /etc/SUSEConnect";
+        assert_script_run("$runtime run $image /bin/bash -c \"$default_connect_cmd && zypper al udev && zypper -n in systemd\" ", timeout => 300);
     }
 }
 
