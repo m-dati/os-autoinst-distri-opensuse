@@ -352,6 +352,7 @@ sub wait_for_ssh {
     my $start_time = time();
     my $check_port = 1;
     my $sleep_period = $args{ignore_wrong_pubkey} ? 20 : 1;
+    my $output;
 
     # Looping until reaching timeout or passing two conditions :
     # - SSH port 22 is reachable
@@ -364,28 +365,40 @@ sub wait_for_ssh {
             # On boottime test we do hard reboot which may change the instance address
             script_run("ssh-keyscan $args{public_ip} | tee -a ~/.ssh/known_hosts") if (get_var('PUBLIC_CLOUD_CHECK_BOOT_TIME'));
 
-            my $output = $self->run_ssh_command(
-                cmd => 'sudo journalctl -b | grep -E "Reached target (Cloud-init|Default|Main User Target)"',
+            $output = $self->run_ssh_command(
+                # cmd => 'sudo journalctl -b | grep -E "Reached target (Cloud-init|Default|Main User Target)"',
+                cmd => 'sudo systemctl is-system-running --wait',
                 proceed_on_failure => 1,
                 username => $args{username});
-            if ($output =~ m/Reached target.*/) {
+            if ($output =~ m/running|degraded/i) {
+                # DEBUG print
+                record_info("CHECK SSH", "wait ssh OK " . $duration . "s\n" . "System: " . $output);
                 return $duration;
             }
             elsif ($output =~ m/Permission denied \(publickey\).*/) {
                 die "ssh permission denied (pubkey)" unless $args{ignore_wrong_pubkey};
             }
+            elsif (defined $output && length $output > 0) {
+                last;    # loop break error
+            }
         }
         sleep $sleep_period;
     }
 
+    # DEBUG print
+    record_info("CHECK SSH", "wait ssh NOK " . time() - $start_time . "s\n" . "System: " . $output);
     script_run("ssh  -i /root/.ssh/id_rsa -v $args{username}\@$args{public_ip} true", timeout => 360);
-    # Debug output: We have occasional error in 'journalctl -b' - see poo#96464 - this will be removed soon.
-    # Exclude 'mr_test/saptune' test case as it will introduce random softreboot failures.
-    if (!get_var('PUBLIC_CLOUD_SLES4SAP')) {
-        $self->run_ssh_command(cmd => 'sudo journalctl -b', proceed_on_failure => 1, username => $args{username}, timeout => 360);
-    }
 
     unless ($args{proceed_on_failure}) {
+        # Debug output: We have occasional error in 'journalctl -b' - see poo#96464 - this will be removed soon.
+        # Exclude 'mr_test/saptune' test case as it will introduce random softreboot failures.
+        my $log = "/tmp/journal.json";
+        if (!get_var('PUBLIC_CLOUD_SLES4SAP')) {
+            # $self->run_ssh_command(cmd => 'sudo journalctl -b', proceed_on_failure => 1, username => $args{username}, timeout => 360);
+            $self->run_ssh_command(cmd => 'sudo journalctl -b --no-pager -o json >' . $log, proceed_on_failure => 1, username => $args{username}, timeout => 360);
+            $self->upload_log($log);
+        }
+
         my $error_msg;
         if ($check_port) {
             $error_msg = sprintf("Unable to reach SSH port of instance %s with public IP:%s within %d seconds", $self->{instance_id}, $self->{public_ip},
