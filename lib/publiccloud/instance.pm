@@ -333,9 +333,18 @@ sub wait_for_guestregister {
 
 =head2 wait_for_ssh
 
-    wait_for_ssh([timeout => 600] [, proceed_on_failure => 0])
+    wait_for_ssh([timeout => 600] [, proceed_on_failure => 0] [, ...])
 
-Check if the SSH port of the instance is reachable and open.
+Check if the SSH port of the remote instance is reachable and open, 
+then by default also check that system is up.
+
+Parameters:
+ timeout => total wait timeout; default 600;
+ proceed_on_failure => false=exit with error, true=continue to run; def. false;
+ username => def. username();
+ public_ip => def. public_ip();
+ systemup_check => true=after ssh also check system up, false=only ssh port check; def. true;
+ logs => true=upload journal to test logs, false=no log to speed up check; def. true.
 =cut
 
 sub wait_for_ssh {
@@ -346,59 +355,88 @@ sub wait_for_ssh {
     # until it is not over we will recieve "ssh permission denied (pubkey)" error
     # but it is not good reason to die early because after it will be over DMS will return normal
     # user and error will be resolved.
-    $args{ignore_wrong_pubkey} //= 0;
+    #$args{ignore_wrong_pubkey} //= $args{proceed_on_failure};
     $args{username} //= $self->username();
     $args{public_ip} //= $self->public_ip();
+    $args{systemup_check} //= 1;    # check also system up, defult:true; when false,systemup check not executed,only ssh checked.
+    $args{logs} //= 1;    # log upload and info display
     my $start_time = time();
-    my $check_port = 1;
-    my $sleep_period = $args{ignore_wrong_pubkey} ? 20 : 1;
+    my $instance_msg = "instance: $self->{instance_id}, public IP: $self->{public_ip}";
 
-    # Looping until reaching timeout or passing two conditions :
-    # - SSH port 22 is reachable
-    # - journalctl got message about reaching one of certain targets
-    while ((my $duration = time() - $start_time) < $args{timeout}) {
-        if ($check_port) {
-            $check_port = 0 if (script_run('nc -vz -w 1 ' . $self->{public_ip} . ' 22', quiet => 1) == 0);
-        }
-        else {
-            # On boottime test we do hard reboot which may change the instance address
-            script_run("ssh-keyscan $args{public_ip} | tee -a ~/.ssh/known_hosts") if (get_var('PUBLIC_CLOUD_CHECK_BOOT_TIME'));
+    # Looping until SSH port 22 is reachable or timeout.
+    # args{timeout} is the Total timeout,
+    # while the script_retry's timeout defines timeout of each retry iteration,
+    # however we use the nc command with option '-w 3' seconds of internal timeout.
+    # So, we calculate the retry number of the '-w' + delay consuming the Total timeout,
+    # but with 5sec timeout as upper limit of the command run:
 
-            my $output = $self->run_ssh_command(
-                cmd => 'sudo journalctl -b | grep -E "Reached target (Cloud-init|Default|Main User Target)"',
-                proceed_on_failure => 1,
-                username => $args{username});
-            if ($output =~ m/Reached target.*/) {
-                return $duration;
-            }
-            elsif ($output =~ m/Permission denied \(publickey\).*/) {
-                die "ssh permission denied (pubkey)" unless $args{ignore_wrong_pubkey};
-            }
-        }
-        sleep $sleep_period;
+    my $exit_code = script_retry('nc -vz -w 3 ' . $self->{public_ip} . ' 22',
+        timeout => 5, delay => 1, retry => int($args{timeout} / 4) + 1, quiet => 1,
+        fail_msg => "Unable to reach SSH port of $instance_msg in $args{timeout} seconds.", die => !$args{proceed_on_failure});
+    # ssh OK or proceed_on_failure true: script ok has exit_code==0
+    my $duration = time() - $start_time;
+    $exit_code = 1 unless defined $exit_code;
+    # On boottime test we do hard reboot which may change the instance address:
+    script_run("ssh-keyscan $args{public_ip} | tee -a ~/.ssh/known_hosts")
+      if (isok($exit_code) and (get_var('PUBLIC_CLOUD_PERF_COLLECT') or get_var('PUBLIC_CLOUD_CHECK_BOOT_TIME') or get_var('PUBLIC_CLOUD_CHECK_REBOOT')));
+
+    my ($sshout, $sysout);
+    if (isok($exit_code)) {
+        $sshout = "SSH port is open.\n";
     }
-
-    script_run("ssh  -i /root/.ssh/id_rsa $args{username}\@$args{public_ip} true", timeout => 360);
-    # Debug output: We have occasional error in 'journalctl -b' - see poo#96464 - this will be removed soon.
-    # Exclude 'mr_test/saptune' test case as it will introduce random softreboot failures.
-    if (!get_var('PUBLIC_CLOUD_SLES4SAP')) {
-        $self->run_ssh_command(cmd => 'sudo journalctl -b', proceed_on_failure => 1, username => $args{username}, timeout => 360);
+    else {    # proceed_on_failure
+        $sshout = "SSH port is not open failed access to $instance_msg\n";
     }
+    # check also remote system is running, looping by --wait option:
+    if ($args{systemup_check} and isok($exit_code)) {
+        # timeout recalculated removing consumed time until now
+        $sysout = $self->ssh_script_output(cmd => 'sudo systemctl is-system-running --wait',
+            timeout => $args{timeout} - $duration, proceed_on_failure => 1, username => $args{username});
 
-    unless ($args{proceed_on_failure}) {
-        my $error_msg;
-        if ($check_port) {
-            $error_msg = sprintf("Unable to reach SSH port of instance %s with public IP:%s within %d seconds", $self->{instance_id}, $self->{public_ip},
-                $args{timeout});
+        $duration = time() - $start_time;    # time update after check result
+        if ($sysout =~ m/running/) {    # startup OK
+            $exit_code = 0;
+            $sysout .= "\nSystem successfully booted: $instance_msg";
         }
-        else {
-            $error_msg = sprintf("Can not reach systemd target on instance %s with public IP:%s within %d seconds",
-                $self->{instance_id}, $self->{public_ip}, $args{timeout});
+        elsif ($sysout =~ m/degraded/) {    # OK with failed services: collection
+            $exit_code = 0;
+            $sysout .= "\n" . $self->ssh_script_output(cmd => 'sudo systemctl --failed', proceed_on_failure => 1, username => $args{username});
         }
-        croak($error_msg);
+        else {    # FAIL: $sysout ~ maintenance|stopping|offline|unknown or Permission denied or any else
+            $exit_code = 1;
+            $sysout .= "\nCan not reach systemd target on $instance_msg";
+        }
+        # Log upload
+        if (!get_var('PUBLIC_CLOUD_SLES4SAP') and isok($exit_code) and $args{logs}) {
+            #Exclude 'mr_test/saptune' test case as it will introduce random softreboot failures.
+            $self->ssh_script_run('sudo journalctl -b --no-pager > /tmp/journalctl.log',
+                timeout => 360, proceed_on_failure => 1, username => $args{username});
+            $self->upload_log('/tmp/journalctl.log', failok => 1);
+        }
     }
+    $sysout .= "\nTimeout $args{timeout} sec. expired" unless ($args{timeout} > $duration);
+    # result display
+    $instance_msg = ($args{systemup_check} ? "SYSTEM" : "SSH") . ", Duration: $duration sec.\nResult: $sshout . $sysout";
+    record_info("WAIT CHECK", $instance_msg);    # result info on openqa GUI
 
-    return;
+    # OK
+    return $duration if (isok($exit_code));
+    # FAIL
+    croak($sshout . $sysout) unless ($args{proceed_on_failure});
+    return;    # proceed_on_failure true
+}
+
+=head2 isok
+
+    isok($exit_code);
+
+Returns the positive test status of a shell exit code or any parameter,
+that is true and ok when its value is zero: C<$x == 0>
+=cut
+
+sub isok {
+    my ($x) = @_;
+    return ($x == 0);
 }
 
 =head2 softreboot
@@ -433,7 +471,7 @@ sub softreboot {
 
     # wait till ssh disappear
     while (($duration = time() - $start_time) < $args{timeout}) {
-        last unless (defined($self->wait_for_ssh(timeout => 1, proceed_on_failure => 1, username => $args{username})));
+        last unless (defined($self->wait_for_ssh(timeout => 1, proceed_on_failure => 1, username => $args{username}, systemup_check => 0)));
     }
     my $shutdown_time = time() - $start_time;
     die("Waiting for system down failed!") unless ($shutdown_time < $args{timeout});
@@ -471,8 +509,8 @@ sub stop {
 
     start([timeout => ?]);
 
-Start the instance and check SSH connectivity. Return the number of seconds
-till the SSH port was available.
+Start the instance and check SSH connectivity then system is UP.
+Returns the number of seconds till the system up and running.
 =cut
 
 sub start {
