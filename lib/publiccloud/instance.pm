@@ -335,30 +335,34 @@ sub wait_for_guestregister {
 
     wait_for_ssh([timeout => 600] [, proceed_on_failure => 0] [, ...])
 
-Wnen a remote pc instance starting, by default stop param.=0(false) and 
+Wnen a remote pc instance starting, by default wait_stop param.=0(false) and 
 this routine checks until the SSH port of the remote instance is reachable and open. 
 Then by default also checks that system is up, unless systemup_check false/0.
 
-Wnen a remote pc instance is stopping in shutdown, we set input param. stop=1(true),
+Wnen a remote pc instance is stopping in shutdown, we set input param. wait_stop=1(true),
 to expect until ssh is closed; automatic defaults systemup_check=0 and proceed_on_failure=1 applied.
-
+ 
 Parameters:
  timeout => total wait timeout; default 600.
- stop => true=wait for ssh stopping, false=wait for ssh starting; def. false.
- proceed_on_failure => false=exit with error, true=continue to run; def. value of stop.
+ wait_stop => true=wait for ssh stopping, false=wait for ssh starting; def. false.
+ proceed_on_failure => false=exit with error, true=continue to run; def. value of wait_stop.
  username => def. username().
  public_ip => def. public_ip().
- systemup_check => true=after ssh also check system up, false=only ssh port check; def. inverse value of stop.
+ systemup_check => true=after ssh also check system up, false=only ssh port check; def. inverse value of wait_stop.
  logs => true=upload journal to test logs, false=no log to speed up check; def. true.
 =cut
 
 sub wait_for_ssh {
     my ($self, %args) = @_;
     $args{timeout} //= 600;
-    $args{stop} //= 0;    # true=wait for ssh closed; false=wait for ssh open; default false
-    $args{proceed_on_failure} //= $args{stop};    # failure handling: false=terminate the run, true=continues; default if the value assumed by stop.
-    $args{systemup_check} //= not $args{stop}; # system up check too(after ssh check): true=executed, false=check not executed; default the inverted value of stop.
-    $args{logs} //= 1;    # log upload and info display
+    # wait_stop: true=wait for ssh closed; false=wait for ssh open; default false
+    $args{wait_stop} //= 0;
+    # proceed_on_failure: failure handling: false=terminate the run, true=continues; default if the value assumed by wait_stop.
+    $args{proceed_on_failure} //= $args{wait_stop};
+    # systemup_check: system up check too(after ssh check): true=executed, false=check not executed; default the inverted value of wait_stop.
+    $args{systemup_check} //= not $args{wait_stop};
+    # logs: log upload disable (=0) to speed up return.
+    $args{logs} //= 1;
     $args{public_ip} //= $self->public_ip();
     # DMS migration (tests/publiccloud/migration.pm) is running under user "migration"
     # until it is not over we will receieve "ssh permission denied (pubkey)" error
@@ -366,88 +370,81 @@ sub wait_for_ssh {
     # DMS will return normal user and error will be resolved.
     $args{ignore_wrong_pubkey} //= 0;
     $args{username} //= $self->username();
-
-    my $sleep_period = $args{ignore_wrong_pubkey} ? 20 : 1;
+    my $delay = $args{ignore_wrong_pubkey} ? 20 : 1;
     my $start_time = time();
     my $instance_msg = "instance: $self->{instance_id}, public IP: $self->{public_ip}";
-
-    # Looping until SSH port 22 is reachable or timeout.
-    # args{timeout} is the Total timeout,
-
-    # while the script_retry's timeout defines timeout of each retry iteration,
-    # however we use the nc command with option '-w 3' seconds of internal timeout.
-    # So, we calculate the retry number of the '-w' + delay consuming the Total timeout,
-    # but with 5sec timeout as upper limit of the command run:
     my ($duration, $exit_code, $sshout, $sysout);
-
-    while (($duration = time() - $start_time) < $args{timeout}) {
+    record_info("WAIT SSH", "Check start:" . $instance_msg);
+    # Looping until SSH port 22 is reachable or timeout.
+    do {
         $exit_code = script_run('nc -vz -w 1 ' . $self->{public_ip} . ' 22', quiet => 1);
-        last if (isok($exit_code) and not $args{stop});    # ssh port open ok
-        last if (not isok($exit_code) and $args{stop});    # ssh port closed ok
-        sleep 1;
-    }
-    # script exit ok has exit_code==0
+        last if (isok($exit_code) and not $args{wait_stop});    # ssh port open ok
+        last if (not isok($exit_code) and $args{wait_stop});    # ssh port closed ok
+        sleep $delay;
+    } while (($duration = time() - $start_time) < $args{timeout});    # endloop
+
+    # script ok has exit_code==0
     if (isok($exit_code)) {
         $sshout = "SSH port is open.\n";
     }
     else {
         $sshout = "SSH port is not open failed access to $instance_msg\n";
-        $sshout .= "as expected by stopping: OK.\n" if $args{stop};
-    }
+        $sshout .= "as expected by stopping: OK.\n" if $args{wait_stop};
+    }    # endif
+    record_info("WAIT SSH", "Check result: $sshout " . $args{systemup_check});
     # check also remote system is running, looping by --wait option:
     if ($args{systemup_check} and isok($exit_code)) {
-        while (($duration = time() - $start_time) < $args{timeout}) {
+        record_info("WAIT CHECK", "START SYS CHK");
+        do {
             # On boottime test we do hard reboot which may change the instance address:
             script_run("ssh-keyscan $args{public_ip} | tee -a ~/.ssh/known_hosts")
               if (get_var('PUBLIC_CLOUD_PERF_COLLECT') or get_var('PUBLIC_CLOUD_CHECK_BOOT_TIME') or get_var('PUBLIC_CLOUD_CHECK_REBOOT'));
-
-            $sysout = $self->ssh_script_output(cmd => 'systemctl --version',
+            # timeout recalculated removing consumed time until now
+            $sysout = $self->ssh_script_output(cmd => 'sudo systemctl is-system-running',
                 timeout => $args{timeout} - $duration, proceed_on_failure => 1, username => $args{username});
-
+            # result check
             if ($sysout =~ m/Permission denied \(publickey\).*/) {
-                $exit_code = 1;
+                $exit_code = 2;
                 last unless $args{ignore_wrong_pubkey};
             }
-            else {
-                $exit_code = 0;
-                $sysout = undef;
-                $args{ignore_wrong_pubkey} = 0;
-                last;    # exit loop
+            elsif ($sysout =~ m/initializing|starting/) {    # still starting
+                $exit_code = undef;
             }
-            sleep $sleep_period;
-        }
-        # timeout recalculated removing consumed time until now
-        $sysout = $self->ssh_script_output(cmd => 'sudo systemctl is-system-running --wait',
-            timeout => $args{timeout} - $duration, proceed_on_failure => 1, username => $args{username}) if isok($exit_code);
+            elsif ($sysout =~ m/running/) {    # startup OK
+                $exit_code = 0;
+                $sysout .= "\nSystem successfully booted: $instance_msg";
+                last;
+            }
+            elsif ($sysout =~ m/degraded/) {    # up but with failed services to collect
+                $exit_code = 0;
+                $sysout .= "\n" . $self->ssh_script_output(cmd => 'sudo systemctl --failed', proceed_on_failure => 1, username => $args{username});
+                last;
+            }
+            else {    # FAIL: $sysout ~ maintenance|stopping|offline|unknown or else
+                $exit_code = 1;
+                $sysout .= "\nCan not reach systemd target on $instance_msg";
+                last;
+            }    # endif
+            sleep $delay;
+        } while (($duration = time() - $start_time) < $args{timeout});    # end loop
 
-        $duration = time() - $start_time;    # time update after check result
-        if ($sysout =~ m/running/) {    # startup OK
-            $exit_code = 0;
-            $sysout .= "\nSystem successfully booted: $instance_msg";
-        }
-        elsif ($sysout =~ m/degraded/) {    # OK with failed services: collection
-            $exit_code = 0;
-            $sysout .= "\n" . $self->ssh_script_output(cmd => 'sudo systemctl --failed', proceed_on_failure => 1, username => $args{username});
-        }
-        else {    # FAIL: $sysout ~ maintenance|stopping|offline|unknown or Permission denied pubkey|undef or else
-            $exit_code = 1;
-            $sysout .= "\nCan not reach systemd target on $instance_msg";
-        }
         # Log upload
-        if (!get_var('PUBLIC_CLOUD_SLES4SAP') and isok($exit_code) and $args{logs}) {
+        if (!get_var('PUBLIC_CLOUD_SLES4SAP') and $args{logs}) {
             #Exclude 'mr_test/saptune' test case as it will introduce random softreboot failures.
             $self->ssh_script_run('sudo journalctl -b --no-pager > /tmp/journalctl.log',
-                timeout => 360, proceed_on_failure => 1, username => $args{username});
+                timeout => 360, proceed_on_failure => 1, username => $args{username}, quiet => 1);
             $self->upload_log('/tmp/journalctl.log', failok => 1);
-        }
-    }
+        }    # endif
+        record_info("WAIT CHECK", "END SYS CHK");
+    }    # endif
+
     $sysout .= "\nTimeout $args{timeout} sec. expired" if ($duration >= $args{timeout});
     # result display
     $instance_msg = ($args{systemup_check} ? "SYSTEM" : "SSH") . ", Duration: $duration sec.\nResult: $sshout . $sysout";
-    record_info("WAIT CHECK", $instance_msg);    # result info on openqa GUI
+    record_info("WAIT CHECK", $instance_msg);
 
     # OK
-    return $duration if (isok($exit_code) and not $args{stop});
+    return $duration if (isok($exit_code) and not $args{wait_stop});
     # FAIL
     croak($sshout . $sysout) unless ($args{proceed_on_failure});
     return;    # proceed_on_failure true
@@ -497,7 +494,7 @@ sub softreboot {
     my $start_time = time();
 
     # wait till ssh disappear
-    my $out = $self->wait_for_ssh(timeout => $args{timeout}, stop => 1, username => $args{username});
+    my $out = $self->wait_for_ssh(timeout => $args{timeout}, wait_stop => 1, username => $args{username});
     # ok ssh port closed
     record_info("STOP NOK", "$out") if (defined $out);    # not ok port still open
     my $shutdown_time = time() - $start_time;
