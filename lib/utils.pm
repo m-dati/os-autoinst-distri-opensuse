@@ -1840,6 +1840,53 @@ sub script_retry {
     return $ret;
 }
 
+=head2 script_output_wait
+
+ script_oputput_wait($cmd [, expect => $expect] [, delay => $delay] [, timeout => $timeout] [, die => $die] [, fail_message = > $fail_message] );
+
+Command output unmatching reg.expr in $ecode is repeated until match or all timeout expired.
+The input timeout is the total time before exit it is applied starting by 1 looping in ++1 increments.
+script_output internal timeout used.
+
+If the command doesn't return C<$expect> after C<$timeout> time,
+this function will die, if C<$die> is set.
+
+Parameters:
+C<$expect> refers to the expected command exit code and defaults to C<0>.
+C<$delay> is the time between retries and defaults to C<30>.
+C<$fail_message> is an optional error message in case of failure. Defaults to "Timeout".
+C<$timeout> seconds is total time within the command must return result (default: 25).
+
+Return:
+    2 values array: (<command ouptput>, <time elapsed>), values undefined if timeout not die.
+
+Example:
+
+  script_output_wait('nc -vz <host>', timeout => 60, expect => 'm/succeeded/');
+
+=cut
+
+sub script_output_wait {
+    my ($cmd, %args) = @_;
+    my $ecode = $args{expect} // 'm//';
+    my $delay = $args{delay} // 30;
+    my $timeout = $args{timeout} // 30;
+    my $die = $args{die} // 1;
+    my $fail_msg = $args{fail_message} // "Timeout: $cmd";
+    my $start = time();
+    my $elaps = 0;
+    my $wait = 0;
+
+    do {
+        # timeout consumed at each loop increased by ++1
+        my $ret = script_output($cmd, ++$wait, proceed_on_failure => 1);
+        return ($ret, $elaps) if defined($ret) && $ret =~ $ecode;
+        sleep $delay;
+    } while (($elaps = time() - $start) < $timeout);
+    die($fail_msg) if $die;
+    return (undef, undef);
+}    # end sub
+
 =head2 script_output_retry
 
  script_output_retry($cmd, [retry => $retry], [delay => $delay], [timeout => $timeout], [die => $die]);

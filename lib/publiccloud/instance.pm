@@ -333,73 +333,140 @@ sub wait_for_guestregister {
 
 =head2 wait_for_ssh
 
-    wait_for_ssh([timeout => 600] [, proceed_on_failure => 0])
+    wait_for_ssh([timeout => 600] [, proceed_on_failure => 0] [, ...])
 
-Check if the SSH port of the instance is reachable and open.
+Wnen a remote pc instance starting, by default wait_stop param.=0(false) and 
+this routine checks until the SSH port of the remote instance is reachable and open. 
+Then by default also checks that system is up, unless systemup_check false/0.
+
+Wnen a remote pc instance is stopping in shutdown, we set input param. wait_stop=1(true),
+to expect until ssh is closed; automatic defaults systemup_check=0 and proceed_on_failure=1 applied.
+ 
+Parameters:
+ timeout => total wait timeout; default 600.
+ wait_stop => true=wait for ssh stopping, false=wait for ssh starting; def. false.
+ proceed_on_failure => false=exit with error, true=continue to run; def. value of wait_stop.
+ username => def. username().
+ public_ip => def. public_ip().
+ systemup_check => true=after ssh also check system up, false=only ssh port check; def. inverse value of wait_stop.
+ logs => true=upload journal to test logs, false=no log to speed up check; def. true.
 =cut
 
 sub wait_for_ssh {
     my ($self, %args) = @_;
     $args{timeout} //= 600;
-    $args{proceed_on_failure} //= 0;
+    # wait_stop: true=wait for ssh closed; false=wait for ssh open; default false
+    $args{wait_stop} //= 0;
+    # proceed_on_failure: failure handling: false=terminate the run, true=continues; default if the value assumed by wait_stop.
+    $args{proceed_on_failure} //= $args{wait_stop};
+    # systemup_check: system up check too(after ssh check): true=executed, false=check not executed; default the inverted value of wait_stop.
+    $args{systemup_check} //= not $args{wait_stop};
+    # logs: log upload disable (=0) to speed up return.
+    $args{logs} //= 1;
+    $args{public_ip} //= $self->public_ip();
     # DMS migration (tests/publiccloud/migration.pm) is running under user "migration"
-    # until it is not over we will recieve "ssh permission denied (pubkey)" error
-    # but it is not good reason to die early because after it will be over DMS will return normal
-    # user and error will be resolved.
+    # until it is not over we will receieve "ssh permission denied (pubkey)" error
+    # but it is not good reason to die early because after it will be over
+    # DMS will return normal user and error will be resolved.
     $args{ignore_wrong_pubkey} //= 0;
     $args{username} //= $self->username();
-    $args{public_ip} //= $self->public_ip();
+    my $delay = $args{ignore_wrong_pubkey} ? 20 : 1;
     my $start_time = time();
-    my $check_port = 1;
-    my $sleep_period = $args{ignore_wrong_pubkey} ? 20 : 1;
+    my $instance_msg = "instance: $self->{instance_id}, public IP: $self->{public_ip}";
+    my ($duration, $exit_code, $sshout, $sysout);
 
-    # Looping until reaching timeout or passing two conditions :
-    # - SSH port 22 is reachable
-    # - journalctl got message about reaching one of certain targets
-    while ((my $duration = time() - $start_time) < $args{timeout}) {
-        if ($check_port) {
-            $check_port = 0 if (script_run('nc -vz -w 1 ' . $self->{public_ip} . ' 22', quiet => 1) == 0);
-        }
-        else {
-            # On boottime test we do hard reboot which may change the instance address
-            script_run("ssh-keyscan $args{public_ip} | tee -a ~/.ssh/known_hosts") if (get_var('PUBLIC_CLOUD_CHECK_BOOT_TIME'));
+    # Looping until SSH port 22 is reachable or timeout.
+    while (($duration = time() - $start_time) < $args{timeout}) {
+        $exit_code = script_run('nc -vz -w 1 ' . $self->{public_ip} . ' 22', quiet => 1);
+        last if (isok($exit_code) and not $args{wait_stop});    # ssh port open ok
+        last if (not isok($exit_code) and $args{wait_stop});    # ssh port closed ok
+        sleep $delay;
+    }    # endloop
 
-            my $output = $self->run_ssh_command(
-                cmd => 'sudo journalctl -b | grep -E "Reached target (Cloud-init|Default|Main User Target)"',
-                proceed_on_failure => 1,
-                username => $args{username});
-            if ($output =~ m/Reached target.*/) {
-                return $duration;
+    # script ok has exit_code==0
+    if (isok($exit_code)) {
+        $sshout = "SSH port is open\n";
+    }
+    else {
+        $sshout = "SSH port is not open failed access\n";
+        $sshout .= "as expected by stopping: OK.\n" if $args{wait_stop};
+    }    # endif
+
+    # check also remote system is running, looping by --wait option:
+    if ($args{systemup_check} and isok($exit_code)) {
+        while (($duration = time() - $start_time) < $args{timeout}) {
+            # On boottime test we do hard reboot which may change the instance address:
+            script_run("ssh-keyscan $args{public_ip} | tee -a ~/.ssh/known_hosts")
+              if (get_var('PUBLIC_CLOUD_PERF_COLLECT') or get_var('PUBLIC_CLOUD_CHECK_BOOT_TIME') or get_var('PUBLIC_CLOUD_CHECK_REBOOT'));
+            # timeout recalculated removing consumed time until now
+            $sysout = $self->ssh_script_output(cmd => 'sudo systemctl is-system-running',
+                timeout => $args{timeout} - $duration, proceed_on_failure => 1, username => $args{username});
+            # result check
+            if ($sysout =~ m/Permission denied \(publickey\).*/) {
+                $exit_code = 2;
+                last unless $args{ignore_wrong_pubkey};
             }
-            elsif ($output =~ m/Permission denied \(publickey\).*/) {
-                die "ssh permission denied (pubkey)" unless $args{ignore_wrong_pubkey};
+            elsif ($sysout =~ m/initializing|starting/) {    # still starting
+                $exit_code = undef;
             }
-        }
-        sleep $sleep_period;
-    }
+            elsif ($sysout =~ m/running/) {    # startup OK
+                $exit_code = 0;
+                $sysout .= "\nSystem successfully booted";
+                last;
+            }
+            elsif ($sysout =~ m/degraded/) {    # up but with failed services to collect
+                $exit_code = 0;
+                $sysout .= "\nSystem booted, but some services failed:\n" .
+                  $self->ssh_script_output(cmd => 'sudo systemctl --failed',
+                    proceed_on_failure => 1, username => $args{username});
+                last;
+            }
+            elsif ($sysout =~ m/maintenance|stopping|offline|unknown/) {
+                $exit_code = 1;
+                $sysout .= "\nCan not reach systemd target";
+                last;
+            }
+            else {    # FAIL: Connection refused or else
+                $exit_code = 1;
+                $sysout .= "\nCan not reach systemd target";
+                last unless ($args{proceed_on_failure} or $args{ignore_wrong_pubkey});    # retry until timeout
+            }    # endif
+            sleep $delay;
+        }    # end loop
+             # Log upload
+        if (!get_var('PUBLIC_CLOUD_SLES4SAP') and $args{logs}) {
+            #Exclude 'mr_test/saptune' test case as it will introduce random softreboot failures.
+            $self->ssh_script_run('sudo journalctl -b --no-pager > /tmp/journalctl.log',
+                timeout => 360, proceed_on_failure => 1, username => $args{username}, quiet => 1);
+            $self->upload_log('/tmp/journalctl.log', failok => 1);
+        }    # endif
+    }    # endif
 
-    script_run("ssh  -i /root/.ssh/id_rsa $args{username}\@$args{public_ip} true", timeout => 360);
-    # Debug output: We have occasional error in 'journalctl -b' - see poo#96464 - this will be removed soon.
-    # Exclude 'mr_test/saptune' test case as it will introduce random softreboot failures.
-    if (!get_var('PUBLIC_CLOUD_SLES4SAP')) {
-        $self->run_ssh_command(cmd => 'sudo journalctl -b', proceed_on_failure => 1, username => $args{username}, timeout => 360);
-    }
+    $sysout .= "\nTimeout $args{timeout} sec. expired" if ($duration >= $args{timeout});
+    # result display
+    $instance_msg = "Check" . ($args{systemup_check} ? " SYSTEM " : " SSH ") . ($args{wait_stop} ? "DOWN" : "UP") .
+      ", $instance_msg, Duration: $duration sec.\nResult: $sshout . $sysout";
+    record_info("WAIT CHECK", $instance_msg);
+    # OK
+    return $duration if (isok($exit_code) and not $args{wait_stop});
+    # FAIL
+    croak($sshout . $sysout) unless ($args{proceed_on_failure});
+    return;    # proceed_on_failure true
+}    # end sub
 
-    unless ($args{proceed_on_failure}) {
-        my $error_msg;
-        if ($check_port) {
-            $error_msg = sprintf("Unable to reach SSH port of instance %s with public IP:%s within %d seconds", $self->{instance_id}, $self->{public_ip},
-                $args{timeout});
-        }
-        else {
-            $error_msg = sprintf("Can not reach systemd target on instance %s with public IP:%s within %d seconds",
-                $self->{instance_id}, $self->{public_ip}, $args{timeout});
-        }
-        croak($error_msg);
-    }
+=head2 isok
 
-    return;
-}
+    isok($exit_code);
+
+Returns the positive test status of a shell exit code or any parameter,
+that is true and ok when its value is defined and zero: C<$x == 0>
+=cut
+
+sub isok {
+    my ($x) = @_;
+    return (defined($x) and $x == 0);
+}    # end sub
+
 
 =head2 softreboot
 
@@ -431,10 +498,12 @@ sub softreboot {
     sleep 60;    # wait for the +1 in the previous command
     my $start_time = time();
 
+
     # wait till ssh disappear
-    while (($duration = time() - $start_time) < $args{timeout}) {
-        last unless (defined($self->wait_for_ssh(timeout => 1, proceed_on_failure => 1, username => $args{username})));
-    }
+    my $out = $self->wait_for_ssh(timeout => $args{timeout}, wait_stop => 1, username => $args{username});
+    # ok ssh port closed
+    record_info("STOP NOK", "$out") if (defined $out);    # not ok port still open
+
     my $shutdown_time = time() - $start_time;
     die("Waiting for system down failed!") unless ($shutdown_time < $args{timeout});
     my $bootup_time = $self->wait_for_ssh(timeout => $args{timeout} - $shutdown_time,
