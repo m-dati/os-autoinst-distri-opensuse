@@ -310,7 +310,9 @@ sub create_instances {
     foreach my $instance (@vms) {
         record_info("INSTANCE", $instance->{instance_id});
         if ($args{check_connectivity}) {
-            $instance->wait_for_ssh();
+            $instance->wait_for_ssh(timeout => $args{timeout},
+                ignore_wrong_pubkey => $args{ignore_wrong_pubkey},
+                proceed_on_failure => $args{proceed_on_failure});
             # Install server's ssh publicckeys to prevent authenticity interactions
             assert_script_run(sprintf('ssh-keyscan %s >> ~/.ssh/known_hosts', $instance->public_ip));
         }

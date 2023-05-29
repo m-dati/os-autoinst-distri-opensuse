@@ -40,7 +40,7 @@ sub run {
 
     select_serial_terminal();
     my $provider = $args->{my_provider};
-    my $instance = $provider->create_instance();
+    my $instance = $provider->create_instance(ignore_wrong_pubkey => 1);
     registercloudguest($instance) if is_byos();
     register_addons_in_pc($instance);
 
