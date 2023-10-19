@@ -41,6 +41,7 @@
       <li><a href="#zypper_search">zypper_search</a></li>
       <li><a href="#zypper_repos">zypper_repos</a></li>
       <li><a href="#zypper_patches">zypper_patches</a></li>
+      <li><a href="#"></a></li>
       <li><a href="#set_zypper_lock_timeout">set_zypper_lock_timeout</a></li>
       <li><a href="#workaround_type_encrypted_passphrase">workaround_type_encrypted_passphrase</a></li>
       <li><a href="#is_boot_encrypted">is_boot_encrypted</a></li>
@@ -79,6 +80,7 @@
       <li><a href="#script_output_retry">script_output_retry</a></li>
       <li><a href="#validate_script_output_retry">validate_script_output_retry</a></li>
       <li><a href="#script_run_interactive">script_run_interactive</a></li>
+      <li><a href="#download_script">download_script</a></li>
       <li><a href="#create_btrfs_subvolume">create_btrfs_subvolume</a></li>
       <li><a href="#create_raid_loop_device">create_raid_loop_device</a></li>
       <li><a href="#file_content_replace">file_content_replace</a></li>
@@ -99,6 +101,7 @@
       <li><a href="#script_finish_io">script_finish_io</a></li>
       <li><a href="#handle_screen-handle_screen-needles-handler_map-assert-assert-max_loops-max_loops">handle_screen handle_screen($needles, $handler_map [, assert =&gt; $assert] [, max_loops =&gt; $max_loops] [...]);</a></li>
       <li><a href="#define_secret_variable-define_secret_variable-var_name-var_value-define_secret_variable-sets-a-hidden-environment-variable-without-exposing-it-to-openQA.-This-function-is-useful-to-hide-secrets-from-openQA-by-setting-them-as-an-accessible-environment-variable-but-without-any-traces-in-the-output-terminals.-e.g.-define_secret_variable-SECRET-get_var-_SECRET_VARIABLE-would-store-the-openQA-variable-_SECRET_VARIABLE-into-the-SECRET-environment-variable-which-can-be-used-afterwards-by-using-SECRET">define_secret_variable define_secret_variable($var_name, $var_value); define_secret_variable sets a hidden environment variable without exposing it to openQA. This function is useful to hide secrets from openQA by setting them as an accessible environment variable, but without any traces in the output terminals. e.g. define_secret_variable(&#39;SECRET&#39;, get_var(&#39;_SECRET_VARIABLE&#39;)) would store the openQA variable &#39;_SECRET_VARIABLE&#39; into the &#39;$SECRET&#39; environment variable, which can be used afterwards by using $SECRET.</a></li>
+      <li><a href="#ping_size_check-ping_size_check-target-size-ping_size_check-will-ping-the-defined-target-with-different-and-increasing-sizes-with-disabled-packet-fragmentation.-If-a-size-is-specified-it-will-do-single-ping-check-with-one-size">ping_size_check ping_size_check($target, $size); ping_size_check will ping the defined target with different and increasing sizes with disabled packet fragmentation. If a size is specified, it will do single ping check with one size.</a></li>
     </ul>
   </li>
 </ul><h1>lib/utils.pm</h1>
@@ -318,6 +321,12 @@ zypper_ar(&#39;https://download.opensuse.org/repositories/devel:/kubic/openSUSE_
 <pre><code>zypper_patches($params);</code></pre>
 
 <p>Run <code>zypper patches</code> with given command line arguments and parse the output into an array of hashes.</p>
+
+<h2 id=""></h2>
+
+<pre><code>zypper_install_available(@packages);</code></pre>
+
+<p>Install all available packages from the given list. Packages not found in enabled repositories will be skipped. Package availability is tested by exact name match.</p>
 
 <h2 id="set_zypper_lock_timeout">set_zypper_lock_timeout</h2>
 
@@ -628,6 +637,12 @@ zypper_ar(&#39;https://download.opensuse.org/repositories/devel:/kubic/openSUSE_
 
 <p>If the first argument is <code>undef</code>, only the sencond part will be processed - to match output and react. If the second argument is undef, the first part will be processed - to run the command without interaction with terminal output. This is useful for some situation when you want to do more between inputing command and the following interaction, eg. switch TTYs or detach the screen.</p>
 
+<h2 id="download_script">download_script</h2>
+
+<pre><code>download_script($srcfile, [$destfile]);</code></pre>
+
+<p>Download <code>$srcfile</code> script from worker data directory to the SUT and save it as <code>$destfile</code>, with executable bit set. If <code>$destfile</code> is not set, the default is to save the script file under the same name in the current directory.</p>
+
 <h2 id="create_btrfs_subvolume">create_btrfs_subvolume</h2>
 
 <pre><code>create_btrfs_subvolume();</code></pre>
@@ -748,6 +763,12 @@ script_finish_io(exitcode =&gt; [12]);</code></pre>
 <p>Note that you may need to set <code>timeout</code> keyword argument if you set <code>$assert</code> to false because <code>check_screen()</code> has <code>$timeout=0</code> by default.</p>
 
 <h2 id="define_secret_variable-define_secret_variable-var_name-var_value-define_secret_variable-sets-a-hidden-environment-variable-without-exposing-it-to-openQA.-This-function-is-useful-to-hide-secrets-from-openQA-by-setting-them-as-an-accessible-environment-variable-but-without-any-traces-in-the-output-terminals.-e.g.-define_secret_variable-SECRET-get_var-_SECRET_VARIABLE-would-store-the-openQA-variable-_SECRET_VARIABLE-into-the-SECRET-environment-variable-which-can-be-used-afterwards-by-using-SECRET">define_secret_variable define_secret_variable($var_name, $var_value); define_secret_variable sets a hidden environment variable without exposing it to openQA. This function is useful to hide secrets from openQA by setting them as an accessible environment variable, but without any traces in the output terminals. e.g. define_secret_variable(&#39;SECRET&#39;, get_var(&#39;_SECRET_VARIABLE&#39;)) would store the openQA variable &#39;_SECRET_VARIABLE&#39; into the &#39;$SECRET&#39; environment variable, which can be used afterwards by using $SECRET.</h2>
+
+<h2 id="ping_size_check-ping_size_check-target-size-ping_size_check-will-ping-the-defined-target-with-different-and-increasing-sizes-with-disabled-packet-fragmentation.-If-a-size-is-specified-it-will-do-single-ping-check-with-one-size">ping_size_check ping_size_check($target, $size); ping_size_check will ping the defined target with different and increasing sizes with disabled packet fragmentation. If a size is specified, it will do single ping check with one size.</h2>
+
+<p>Mandatory parameter: <code>target</code> destination of ping target.</p>
+
+<p>Optional parameter: <code>size</code> ping size for single ping test.</p>
 
 
 </body>

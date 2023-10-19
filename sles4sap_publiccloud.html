@@ -16,6 +16,7 @@
     <ul>
       <li><a href="#run_cmd-run_cmd-cmd-command-runas-user-timeout-60">run_cmd run_cmd(cmd =&gt; &#39;command&#39;, [runas =&gt; &#39;user&#39;, timeout =&gt; 60]);</a></li>
       <li><a href="#get_promoted_hostname-get_promoted_hostname">get_promoted_hostname() get_promoted_hostname();</a></li>
+      <li><a href="#sles4sap_cleanup">sles4sap_cleanup</a></li>
       <li><a href="#get_hana_topology-get_hana_topology-hostname-hostname">get_hana_topology get_hana_topology([hostname =&gt; $hostname]);</a></li>
       <li><a href="#is_hana_online-is_hana_online-timeout-120-wait_for_start-false">is_hana_online is_hana_online([timeout =&gt; 120, wait_for_start =&gt; &#39;false&#39;]);</a></li>
       <li><a href="#is_hana_resource_running-is_hana_resource_running-timeout-60">is_hana_resource_running is_hana_resource_running([timeout =&gt; 60]);</a></li>
@@ -28,10 +29,15 @@
       <li><a href="#get_promoted_instance-get_promoted_instance">get_promoted_instance get_promoted_instance();</a></li>
       <li><a href="#wait_for_sync-wait_for_sync-timeout-timeout">wait_for_sync wait_for_sync([timeout =&gt; $timeout]);</a></li>
       <li><a href="#wait_for_pacemaker-wait_for_pacemaker-timeout-timeout">wait_for_pacemaker wait_for_pacemaker([timeout =&gt; $timeout]);</a></li>
-      <li><a href="#setup_sbd_delay-self-setup_sbd_delay">setup_sbd_delay $self-&gt;setup_sbd_delay();</a></li>
+      <li><a href="#change_sbd_service_timeout-self-change_sbd_service_timeout-timeout-timeout">change_sbd_service_timeout $self-&gt;change_sbd_service_timeout(timeout =&gt; $timeout);</a></li>
+      <li><a href="#setup_sbd_delay_publiccloud-self-setup_sbd_delay_publiccloud">setup_sbd_delay_publiccloud $self-&gt;setup_sbd_delay_publiccloud();</a></li>
       <li><a href="#sbd_delay_formula-self-sbd_delay_formula">sbd_delay_formula $self-&gt;sbd_delay_formula();</a></li>
       <li><a href="#cloud_file_content_replace-cloud_file_content_replace-filename-search_pattern-replace_with">cloud_file_content_replace cloud_file_content_replace($filename, $search_pattern, $replace_with);</a></li>
       <li><a href="#create_instance_data">create_instance_data</a></li>
+      <li><a href="#deployment_name">deployment_name</a></li>
+      <li><a href="#delete_network_peering">delete_network_peering</a></li>
+      <li><a href="#create_ansible_playbook_list">create_ansible_playbook_list</a></li>
+      <li><a href="#create_hana_vars_section">create_hana_vars_section</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap_publiccloud.pm</h1>
@@ -46,6 +52,10 @@ otherwise it will be executed as root.</code></pre>
 <h2 id="get_promoted_hostname-get_promoted_hostname">get_promoted_hostname() get_promoted_hostname();</h2>
 
 <pre><code>Checks and returns hostname of HANA promoted node according to crm shell output.</code></pre>
+
+<h2 id="sles4sap_cleanup">sles4sap_cleanup</h2>
+
+<pre><code>Clean up Network peering and qesap deployment</code></pre>
 
 <h2 id="get_hana_topology-get_hana_topology-hostname-hostname">get_hana_topology get_hana_topology([hostname =&gt; $hostname]);</h2>
 
@@ -73,7 +83,7 @@ If hostname defined, returns hash with values only for host specified.</code></p
 
 <h2 id="cleanup_resource-cleanup_resource-timeout-60">cleanup_resource cleanup_resource([timeout =&gt; 60]);</h2>
 
-<pre><code>Cleanup resource &#39;msl_SAPHana_*&#39;, wait for DB start automaticlly.</code></pre>
+<pre><code>Cleanup resource &#39;msl_SAPHana_*&#39;, wait for DB start automatically.</code></pre>
 
 <h2 id="check_takeover-check_takeover">check_takeover check_takeover();</h2>
 
@@ -102,7 +112,12 @@ Continue after expected output matched three times continually to make sure clus
 
 <pre><code>Checks status of pacemaker via systemd &#39;is-active&#39; command an waits for startup.</code></pre>
 
-<h2 id="setup_sbd_delay-self-setup_sbd_delay">setup_sbd_delay $self-&gt;setup_sbd_delay();</h2>
+<h2 id="change_sbd_service_timeout-self-change_sbd_service_timeout-timeout-timeout">change_sbd_service_timeout $self-&gt;change_sbd_service_timeout(timeout =&gt; $timeout);</h2>
+
+<pre><code>Overrides timeout for sbd systemd service to a value provided by argument.
+This is done by creating or changing file &quot;/etc/systemd/system/sbd.service.d/sbd_delay_start.conf&quot;</code></pre>
+
+<h2 id="setup_sbd_delay_publiccloud-self-setup_sbd_delay_publiccloud">setup_sbd_delay_publiccloud $self-&gt;setup_sbd_delay_publiccloud();</h2>
 
 <pre><code>Set (activate or deactivate) SBD_DELAY_START setting in /etc/sysconfig/sbd.
 Delay is used in case of cluster VM joining cluster too quickly after fencing operation.
@@ -126,6 +141,25 @@ Returns integer representing wait time.</code></pre>
 
 <pre><code>Create and populate a list of publiccloud::instance and publiccloud::provider compatible
 class instances.</code></pre>
+
+<h2 id="deployment_name">deployment_name</h2>
+
+<pre><code>Return a string to be used as value for the deployment_name variable
+in the qe-sap-deployment.</code></pre>
+
+<h2 id="delete_network_peering">delete_network_peering</h2>
+
+<pre><code>Delete network peering between SUT created with qe-sa-deployment
+and the IBS Mirror. Function is generic over all the Cloud Providers</code></pre>
+
+<h2 id="create_ansible_playbook_list">create_ansible_playbook_list</h2>
+
+<pre><code>Detects HANA/HA scenario from openQA variables and returns a list of ansible playbooks to include
+in the &quot;ansible: create:&quot; section of config.yaml file.</code></pre>
+
+<h2 id="create_hana_vars_section">create_hana_vars_section</h2>
+
+<pre><code>Detects HANA/HA scenario from openQA variables and creates &quot;terraform: variables:&quot; section in config.yaml file.</code></pre>
 
 
 </body>
