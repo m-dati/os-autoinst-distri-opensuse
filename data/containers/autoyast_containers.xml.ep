@@ -37,15 +37,15 @@
     <mode>
       <confirm config:type="boolean">false</confirm>
     </mode>
+    % if ($check_var->('ARCH', 's390x')) {
+    <ask-list config:type="list"/>
+    <cio_ignore config:type="boolean">false</cio_ignore>
+    <final_reboot config:type="boolean">true</final_reboot>
+    % }
   </general>
   <bootloader>
-    % unless ($check_var->('ARCH', 's390x')) {
-    <device_map config:type="list">
-      <device_map_entry>
-        <firmware>hd0</firmware>
-        <linux>/dev/vda</linux>
-      </device_map_entry>
-    </device_map>
+    % if ($check_var->('ARCH', 'ppc64le') or $check_var->('ARCH', 's390x')) {
+    <loader_type>grub2</loader_type>
     % }
     <global>
       % if ($check_var->('ARCH', 's390x')) {
@@ -54,6 +54,19 @@
       <boot_mbr>true</boot_mbr>
       <boot_root>true</boot_root>
       <generic_mbr>false</generic_mbr>
+      # added for s390x:
+      <append>hvc_iucv=8 TERM=dumb resume=/dev/disk/by-path/ccw-0.0.0000-part3 crashkernel=163M</append>
+      <gfxmode>auto</gfxmode>
+      <hiddenmenu>false</hiddenmenu>
+      <os_prober>false</os_prober>
+      <terminal>console</terminal>
+      <timeout config:type="integer">8</timeout>
+      # <trusted_grub>false</trusted_grub> # wrong tag
+      <trusted_boot>true</trusted_boot>
+      <xen_append>crashkernel=163M</xen_append>
+      #<xen_kernel_append>crashkernel=163M\&lt;4G</xen_kernel_append>
+      <xen_kernel_append>crashkernel=163M</xen_kernel_append> # Crash offset default used
+      #
       % } elsif ($check_var->('ARCH', 'ppc64le')) {
       <append>showopts plymouth.ignore-serial-consoles console=hvc0 console=tty mitigations=auto crashkernel=201M</append>
       <boot_boot>false</boot_boot>
@@ -62,8 +75,13 @@
       % }
       <timeout config:type="integer">-1</timeout>
     </global>
-    % if ($check_var->('ARCH', 'ppc64le') or $check_var->('ARCH', 's390x')) {
-    <loader_type>grub2</loader_type>
+    % unless ($check_var->('ARCH', 's390x')) {
+    <device_map config:type="list">
+      <device_map_entry>
+        <firmware>hd0</firmware>
+        <linux>/dev/vda</linux>
+      </device_map_entry>
+    </device_map>
     % }
   </bootloader>
   <networking>
@@ -100,6 +118,121 @@
     </zones>
   </firewall>
   % }
+  
+  % if ($check_var->('ARCH', 's390x')) {
+  <dasd>
+    <devices config:type="list"/>
+    # <format_unformatted config:type="boolean">false</format_unformatted> # unknown tag
+  </dasd>
+  <deploy_image>
+    <image_installation config:type="boolean">false</image_installation>
+  </deploy_image>
+  % }
+  
+  # partitioning
+  % if ($check_var->('ARCH', 's390x')) {
+  <partitioning config:type="list">
+    <drive>
+      <_id config:type="integer">0</_id>
+      <device>/dev/disk/by-path/ccw-0.0.0000</device>
+      <disklabel>gpt</disklabel>
+      <enable_snapshots config:type="boolean">true</enable_snapshots>
+      <partitions config:type="list">
+        <partition>
+          <create config:type="boolean">true</create>
+          <filesystem config:type="symbol">ext2</filesystem>
+          <format config:type="boolean">true</format>
+          <fstopt>acl,user_xattr</fstopt>
+          <mount>/boot/zipl</mount>
+          <mountby config:type="symbol">uuid</mountby>
+          <partition_id config:type="integer">131</partition_id>
+          <partition_nr config:type="integer">1</partition_nr>
+          <partition_type>primary</partition_type>
+          <resize config:type="boolean">false</resize>
+          <size>300M</size>
+        </partition>
+        <partition>
+          <create config:type="boolean">true</create>
+          <filesystem config:type="symbol">btrfs</filesystem>
+          <format config:type="boolean">true</format>
+          <mount>/</mount>
+          <mountby config:type="symbol">uuid</mountby>
+          <partition_id config:type="integer">131</partition_id>
+          <partition_nr config:type="integer">2</partition_nr>
+          <partition_type>primary</partition_type>
+          <size>max</size>  # size added
+          <resize config:type="boolean">false</resize>
+        </partition>
+      </partitions>
+      <type config:type="symbol">CT_DISK</type>
+      <use>all</use>
+    </drive>
+  </partitioning>
+  % }
+  % unless ($check_var->('ARCH', 's390x')) {
+  <partitioning config:type="list">
+    <drive config:type="map">
+      <device>/dev/vda</device>
+      <disklabel>gpt</disklabel>
+      <enable_snapshots config:type="boolean">true</enable_snapshots>
+      <partitions config:type="list">
+        <partition config:type="map">
+          <create config:type="boolean">true</create>
+          <create_subvolumes config:type="boolean">true</create_subvolumes>
+          <filesystem config:type="symbol">btrfs</filesystem>
+          <format config:type="boolean">true</format>
+          <mount>/</mount>
+          <mountby config:type="symbol">uuid</mountby>
+          <partition_id config:type="integer">131</partition_id>
+          <partition_nr config:type="integer">2</partition_nr>
+          <size>max</size>
+          <subvolumes config:type="list">
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">false</copy_on_write>
+              <path>var</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>usr/local</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>tmp</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>srv</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>root</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>opt</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>home</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>boot/grub2/x86_64-efi</path>
+            </subvolume>
+            <subvolume config:type="map">
+              <copy_on_write config:type="boolean">true</copy_on_write>
+              <path>boot/grub2/i386-pc</path>
+            </subvolume>
+          </subvolumes>
+          <subvolumes_prefix>@</subvolumes_prefix>
+        </partition>
+      </partitions>
+      <type config:type="symbol">CT_DISK</type>
+      <use>all</use>
+    </drive>
+  </partitioning>
+  % }
+
   <software>
     <products config:type="list">
       <product>SLES</product>
@@ -117,9 +250,10 @@
       % unless ($get_var->('VERSION') =~ /12-SP3|12-SP4|12-SP5|15$/) {
       <package>podman</package>
       % }}
+
       % if ($get_var->('VERSION') =~ /15$|15-SP1|15-SP2/) {
       <package>podman-cni-config</package>
-      % }}
+      % }
     </packages>
     <patterns config:type="list">
       <pattern>base</pattern>
