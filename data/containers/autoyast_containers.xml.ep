@@ -119,14 +119,6 @@
               <copy_on_write config:type="boolean">true</copy_on_write>
               <path>boot/grub2/s390x-emu</path>
             </subvolume>
-            <subvolume config:type="map">
-              <copy_on_write config:type="boolean">true</copy_on_write>
-              <path>root</path>
-            </subvolume>
-            <subvolume config:type="map">
-              <copy_on_write config:type="boolean">true</copy_on_write>
-              <path>tmp</path>
-            </subvolume>
           </subvolumes>
           <subvolumes_prefix>@</subvolumes_prefix>
         </partition>
@@ -158,14 +150,6 @@
             <subvolume config:type="map">
               <copy_on_write config:type="boolean">true</copy_on_write>
               <path>boot/grub2/i386-pc</path>
-            <subvolume config:type="map">
-              <copy_on_write config:type="boolean">true</copy_on_write>
-              <path>root</path>
-            </subvolume>
-            <subvolume config:type="map">
-              <copy_on_write config:type="boolean">true</copy_on_write>
-              <path>tmp</path>
-            </subvolume>
             </subvolume>
           </subvolumes>
           <subvolumes_prefix>@</subvolumes_prefix>
