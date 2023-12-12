@@ -25,6 +25,7 @@
           <li><a href="#qesap_create_ansible_section">qesap_create_ansible_section</a></li>
           <li><a href="#qesap_venv_cmd_exec">qesap_venv_cmd_exec</a></li>
           <li><a href="#qesap_pip_install">qesap_pip_install</a></li>
+          <li><a href="#qesap_galaxy_install">qesap_galaxy_install</a></li>
           <li><a href="#qesap_upload_logs">qesap_upload_logs</a></li>
           <li><a href="#qesap_get_deployment_code">qesap_get_deployment_code</a></li>
           <li><a href="#qesap_get_roles_code-Get-the-Ansible-roles-code-from-github.com-sap-linuxlab-community.sles-for-sap">qesap_get_roles_code Get the Ansible roles code from github.com/sap-linuxlab/community.sles-for-sap</a></li>
@@ -75,9 +76,16 @@
         </ul>
       </li>
       <li><a href="#qesap_az_clean_old_peerings">qesap_az_clean_old_peerings</a></li>
+      <li><a href="#qesap_az_setup_native_fencing_permissions">qesap_az_setup_native_fencing_permissions</a></li>
+      <li><a href="#qesap_az_enable_system_assigned_identity">qesap_az_enable_system_assigned_identity</a></li>
+      <li><a href="#qesap_az_assign_role">qesap_az_assign_role</a></li>
+      <li><a href="#qesap_az_get_tenant_id">qesap_az_get_tenant_id</a></li>
+      <li><a href="#qesap_az_validate_uuid_pattern">qesap_az_validate_uuid_pattern</a></li>
+      <li><a href="#qesap_az_create_sas_token">qesap_az_create_sas_token</a></li>
+      <li><a href="#qesap_terraform_clean_up_retry">qesap_terraform_clean_up_retry</a></li>
+      <li><a href="#qesap_terrafom_ansible_deploy_retry">qesap_terrafom_ansible_deploy_retry</a></li>
     </ul>
   </li>
-  <li><a href="#POD-ERRORS">POD ERRORS</a></li>
 </ul><h1>lib/qesapdeployment.pm</h1>
 
 <h1 id="NAME">NAME</h1>
@@ -150,6 +158,10 @@ Return is only valid if failok = 1</code></pre>
 <pre><code>Install all Python requirements of the qe-sap-deployment
 in a dedicated virtual environment</code></pre>
 
+<h3 id="qesap_galaxy_install">qesap_galaxy_install</h3>
+
+<pre><code>Install all Ansible requirements of the qe-sap-deployment</code></pre>
+
 <h3 id="qesap_upload_logs">qesap_upload_logs</h3>
 
 <pre><code>qesap_upload_logs([failok=1])
@@ -216,7 +228,7 @@ Test only returns execution result, failure has to be handled by calling method.
 <dd>
 
 </dd>
-<dt id="LOGNAME---filename-of-the-log-file.-This-argument-is-optional-if-not-specified-the-log-filename-is-internally-calculated-using-content-from-CMD-and-CMD_OPTIONS.-back"><b>LOGNAME</b> - filename of the log file. This argument is optional, if not specified the log filename is internally calculated using content from CMD and CMD_OPTIONS. =back</dt>
+<dt id="LOGNAME---filename-of-the-log-file.-This-argument-is-optional-if-not-specified-the-log-filename-is-internally-calculated-using-content-from-CMD-and-CMD_OPTIONS"><b>LOGNAME</b> - filename of the log file. This argument is optional, if not specified the log filename is internally calculated using content from CMD and CMD_OPTIONS.</dt>
 <dd>
 
 </dd>
@@ -233,7 +245,7 @@ Returns 1 if the string is found in the log file, 0 otherwise.</code></pre>
 <dd>
 
 </dd>
-<dt id="SEARCH_STRING---String-to-search-for-in-the-log-file.-Required-back"><b>SEARCH_STRING</b> - String to search for in the log file. (Required) =back</dt>
+<dt id="SEARCH_STRING---String-to-search-for-in-the-log-file.-Required"><b>SEARCH_STRING</b> - String to search for in the log file. (Required)</dt>
 <dd>
 
 </dd>
@@ -556,7 +568,7 @@ Return total time of retry loop in case of pass.</code></pre>
 <dd>
 
 </dd>
-<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die-back"><b>FAILOK</b> - if not set, Ansible failure result in die =back</dt>
+<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die5"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
 <dd>
 
 </dd>
@@ -572,7 +584,7 @@ Return total time of retry loop in case of pass.</code></pre>
 
 <h3 id="qesap_az_get_vnet">qesap_az_get_vnet</h3>
 
-<p>Return the output of az network vnet list =over 1</p>
+<p>Return the output of az network vnet list</p>
 
 <dl>
 
@@ -900,7 +912,8 @@ qesap_export_instances()</code></pre>
 
 <h3 id="qesap_is_job_finished">qesap_is_job_finished</h3>
 
-<pre><code>Get whether a specified job is still running or not</code></pre>
+<pre><code>Get whether a specified job is still running or not. 
+In cases of ambiguous responses, they are considered to be in `running` state.</code></pre>
 
 <dl>
 
@@ -942,37 +955,113 @@ qesap_export_instances()</code></pre>
 </dd>
 </dl>
 
-<h1 id="POD-ERRORS">POD ERRORS</h1>
+<h2 id="qesap_az_setup_native_fencing_permissions">qesap_az_setup_native_fencing_permissions</h2>
 
-<p>Hey! <b>The above document had some coding errors, which are explained below:</b></p>
+<pre><code>qesap_az_setup_native_fencing_permissions(vmname=&gt;$vm_name,
+    resource_group=&gt;$resource_group);
+
+Sets up managed identity (MSI) by enabling system assigned identity and role &#39;Virtual Machine Contributor&#39;</code></pre>
 
 <dl>
 
-<dt id="Around-line-441">Around line 441:</dt>
+<dt id="VM_NAME---VM-name"><b>VM_NAME</b> - VM name</dt>
 <dd>
-
-<p>You forgot a &#39;=back&#39; before &#39;=head3&#39;</p>
 
 </dd>
-<dt id="Around-line-461">Around line 461:</dt>
+<dt id="RESOURCE_GROUP---resource-group-resource-belongs-to"><b>RESOURCE_GROUP</b> - resource group resource belongs to</dt>
 <dd>
-
-<p>You forgot a &#39;=back&#39; before &#39;=head3&#39;</p>
-
-</dd>
-<dt id="Around-line-989">Around line 989:</dt>
-<dd>
-
-<p>You forgot a &#39;=back&#39; before &#39;=head3&#39;</p>
-
-</dd>
-<dt id="Around-line-1066">Around line 1066:</dt>
-<dd>
-
-<p>&#39;=item&#39; outside of any &#39;=over&#39;</p>
 
 </dd>
 </dl>
+
+<h2 id="qesap_az_enable_system_assigned_identity">qesap_az_enable_system_assigned_identity</h2>
+
+<pre><code>qesap_az_enable_system_assigned_identity($vm_name, $resource_group);
+
+Enables &#39;System assigned identity&#39; for specified VM.
+Returns &#39;systemAssignedIdentity&#39; ID.</code></pre>
+
+<dl>
+
+<dt id="VM_NAME---VM-name1"><b>VM_NAME</b> - VM name</dt>
+<dd>
+
+</dd>
+<dt id="RESOURCE_GROUP---resource-group-resource-belongs-to1"><b>RESOURCE_GROUP</b> - resource group resource belongs to</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="qesap_az_assign_role">qesap_az_assign_role</h2>
+
+<pre><code>qesap_az_assign_role( assignee=&gt;$assignee, role=&gt;$role, resource_group=&gt;$resource_group )
+
+Assigns defined role to &#39;assignee&#39; (user, vm, etc...) using subscription id.
+ assignee - UUID for the resource (VM in this case)
+ role - role to be assigned
+ resource_group - resource group resource belongs to</code></pre>
+
+<h2 id="qesap_az_get_tenant_id">qesap_az_get_tenant_id</h2>
+
+<pre><code>qesap_az_get_tenant_id( subscription_id=&gt;$subscription_id )
+
+Returns tenant ID related to the specified subscription ID.
+subscription_id - valid azure subscription</code></pre>
+
+<h2 id="qesap_az_validate_uuid_pattern">qesap_az_validate_uuid_pattern</h2>
+
+<pre><code>qesap_az_validate_uuid_pattern( uuid_string=&gt;$uuid_string )
+
+Function checks input string against uuid pattern which is commonly used as an identifier for azure resources.
+returns uuid (true) on match, 0 (false) on mismatch.</code></pre>
+
+<h2 id="qesap_az_create_sas_token">qesap_az_create_sas_token</h2>
+
+<p>Generate a SAS URI token for a storage container of choice</p>
+
+<p>Return the token string</p>
+
+<dl>
+
+<dt id="STORAGE---Storage-account-name-used-fur-the---account-name-argument-in-az-commands"><b>STORAGE</b> - Storage account name used fur the --account-name argument in az commands</dt>
+<dd>
+
+</dd>
+<dt id="CONTAINER---container-name-within-the-storage-account"><b>CONTAINER</b> - container name within the storage account</dt>
+<dd>
+
+</dd>
+<dt id="KEYNAME---name-of-the-access-key-within-the-storage-account"><b>KEYNAME</b> - name of the access key within the storage account</dt>
+<dd>
+
+</dd>
+<dt id="PERMISSION---access-permissions.-Syntax-is-what-documented-in-az-storage-container-generate-sas---help.-Some-of-them-of-interest:-a-dd-c-reate-d-elete-e-xecute-l-ist-m-ove-r-ead-w-rite.-Default-is-r"><b>PERMISSION</b> - access permissions. Syntax is what documented in &#39;az storage container generate-sas --help&#39;. Some of them of interest: (a)dd (c)reate (d)elete (e)xecute (l)ist (m)ove (r)ead (w)rite. Default is &#39;r&#39;</dt>
+<dd>
+
+</dd>
+<dt id="LIFETIME---life-time-of-the-token-in-minutes-default-is-10minute"><b>LIFETIME</b> - life time of the token in minutes, default is 10minute</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="qesap_terraform_clean_up_retry">qesap_terraform_clean_up_retry</h2>
+
+<pre><code>qesap_terraform_clean_up_retry()
+
+Perform terraform destroy and catch and ignore any error.
+This method is mostly useful when doing cleanup before retry in case of
+Ansible failed on &#39;Timed out waiting for last boot time check&#39;</code></pre>
+
+<h2 id="qesap_terrafom_ansible_deploy_retry">qesap_terrafom_ansible_deploy_retry</h2>
+
+<pre><code>qesap_terrafom_ansible_deploy_retry( error_log=&gt;$error_log )
+    error_log - ansible error log file name
+
+Retry to deploy terraform + ansible
+Return 0: we manage the failure properly
+Return 1: something went wrong or we do not know what to do with the failure</code></pre>
 
 
 </body>
