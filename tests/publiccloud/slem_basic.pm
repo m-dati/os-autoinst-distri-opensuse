@@ -50,10 +50,14 @@ sub check_avc {
 
 sub run {
     my ($self) = @_;
-
+    my $pubcloud = get_var('PUBLIC_CLOUD', 0);
     select_serial_terminal();
     my $provider = $self->provider_factory();
-    $provider->{username} = 'suse';
+    if ($pubcloud) {
+        $provider->{username} = 'susetest';
+    } else {
+        $provider->{username} = 'suse';
+    }
     my $instance = $self->{my_instance} = $provider->create_instance(check_guestregister => 0);
 
     # On SLEM 5.2+ check that we don't have any SELinux denials. This needs to happen before anything else is ongoing
