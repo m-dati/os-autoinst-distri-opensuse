@@ -16,6 +16,7 @@ use strict;
 use utils;
 use publiccloud::ssh_interactive "select_host_console";
 use maintenance_smelt qw(is_embargo_update);
+use version_utils "is_sle_micro";
 
 sub run {
     my ($self, $args) = @_;
@@ -24,7 +25,8 @@ sub run {
     my $remote = $args->{my_instance}->username . '@' . $args->{my_instance}->public_ip;
     my @addons = split(/,/, get_var('SCC_ADDONS', ''));
     my $skip_mu = get_var('PUBLIC_CLOUD_SKIP_MU', 0);
-
+    my $repodir = "/tmp/repos";
+    $repodir = "/opt/repos" if (is_sle_micro);
     # Trigger to skip the download to speed up verification runs
     if ($skip_mu) {
         record_info('Skip download', 'Skipping maintenance update download (triggered by setting)');
@@ -61,18 +63,25 @@ sub run {
         # * The --dirs (-d) option is implied whn --files-from is specified.
         # * The --archive (-a) option's behavior does not imply --recursive (-r) when --files-from is specified.
         # --recursive (-r), --update (-u), --archive (-a), --human-readable (-h), --rsh (-e)
-        script_retry("rsync --timeout=$timeout -ruahd -e ssh --files-from /tmp/transfer_repos.txt ~/repos/./ '$remote:/tmp/repos/'", timeout => $timeout + 10, retry => 3, delay => 120);
+        $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir; sudo chmod 777 $repodir") if (is_sle_micro);
+        script_retry("rsync --timeout=$timeout -ruahd -e ssh --files-from /tmp/transfer_repos.txt ~/repos/./ '$remote:$repodir'", timeout => $timeout + 10, retry => 3, delay => 120);
 
-        my $total_size = $args->{my_instance}->ssh_script_output(cmd => 'du -hs /tmp/repos');
+        my $total_size = $args->{my_instance}->ssh_script_output(cmd => 'du -hs $repodir');
         record_info("Repo size", "Total repositories size: $total_size");
         $args->{my_instance}->ssh_assert_script_run("find ./ -name '*.rpm' -exec du -h '{}' + | sort -h > /tmp/rpm_list.txt", timeout => 60);
         $args->{my_instance}->upload_log('/tmp/rpm_list.txt');
 
-        $args->{my_instance}->ssh_assert_script_run("sudo find /tmp/repos/ -name *.repo -exec sed -i 's,http://,/tmp/repos/,g' '{}' \\;");
-        $args->{my_instance}->ssh_assert_script_run("sudo find /tmp/repos/ -name *.repo -exec zypper ar -p10 '{}' \\;");
-        $args->{my_instance}->ssh_assert_script_run("sudo find /tmp/repos/ -name *.repo -exec echo '{}' \\;");
+        $args->{my_instance}->ssh_assert_script_run("sudo find $repodir -name *.repo -exec sed -i 's,http://,$repodir,g' '{}' \\;");
+        $args->{my_instance}->ssh_assert_script_run("sudo find $repodir -name *.repo -exec zypper ar -p10 '{}' \\;");
+        $args->{my_instance}->ssh_assert_script_run("sudo find $repodir -name *.repo -exec echo '{}' \\;");
 
         $args->{my_instance}->ssh_assert_script_run("zypper lr -P");
+        if (is_sle_micro) {
+            $args->{my_instance}->ssh_assert_script_run("transactional-update run bash -c '
+                echo BINDDIRS[\"repos\"]=$repodir >> /usr/etc/tukit.conf.d/tukit_repos.conf
+                '");
+            $args->{my_instance}->softreboot(timeout => get_var('PUBLIC_CLOUD_REBOOT_TIMEOUT', 600));
+        }
     }
 }
 

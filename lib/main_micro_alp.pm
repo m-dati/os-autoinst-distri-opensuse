@@ -279,6 +279,11 @@ sub load_slem_on_pc_tests {
         loadtest("boot/boot_to_desktop");
         loadtest("publiccloud/prepare_instance", run_args => $args);
         loadtest("publiccloud/registration", run_args => $args);
+        # Modules addition not verified yet for other micro products (alp, microos, leap-micro, elemental)
+        if (is_sle_micro()) {
+            loadtest("publiccloud/transfer_repos", run_args => $args);
+            loadtest("publiccloud/patch_and_reboot", run_args => $args);
+        }
         loadtest("publiccloud/ssh_interactive_start", run_args => $args);
         loadtest("publiccloud/instance_overview", run_args => $args);
         loadtest("publiccloud/slem_prepare", run_args => $args);

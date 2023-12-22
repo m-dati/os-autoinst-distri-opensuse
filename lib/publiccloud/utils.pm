@@ -18,7 +18,7 @@ use strict;
 use warnings;
 use testapi;
 use utils;
-use version_utils qw(is_sle is_public_cloud get_version_id is_transactional);
+use version_utils qw(is_sle is_sle_micro is_public_cloud get_version_id is_transactional);
 use transactional qw(check_reboot_changes trup_call process_reboot);
 use registration;
 use maintenance_smelt qw(is_embargo_update);
@@ -296,6 +296,8 @@ sub prepare_ssh_tunnel {
 
 sub kill_packagekit {
     my ($instance) = @_;
+    # pkcon not present on SLE micro
+    return 1 if (is_sle_micro());
     my $ret = $instance->ssh_script_run(cmd => "sudo pkcon quit", timeout => 120);
     if ($ret) {
         # Older versions of systemd don't support "disable --now"
