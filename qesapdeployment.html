@@ -34,6 +34,7 @@
           <li><a href="#qesap_file_find_string">qesap_file_find_string</a></li>
           <li><a href="#qesap_get_inventory">qesap_get_inventory</a></li>
           <li><a href="#qesap_get_nodes_number">qesap_get_nodes_number</a></li>
+          <li><a href="#qesap_get_nodes_names">qesap_get_nodes_names</a></li>
           <li><a href="#qesap_get_terraform_dir">qesap_get_terraform_dir</a></li>
           <li><a href="#qesap_get_ansible_roles_dir">qesap_get_ansible_roles_dir</a></li>
           <li><a href="#qesap_prepare_env">qesap_prepare_env</a></li>
@@ -76,6 +77,7 @@
         </ul>
       </li>
       <li><a href="#qesap_az_clean_old_peerings">qesap_az_clean_old_peerings</a></li>
+      <li><a href="#qesap_az_get_native_fencing_type">qesap_az_get_native_fencing_type</a></li>
       <li><a href="#qesap_az_setup_native_fencing_permissions">qesap_az_setup_native_fencing_permissions</a></li>
       <li><a href="#qesap_az_enable_system_assigned_identity">qesap_az_enable_system_assigned_identity</a></li>
       <li><a href="#qesap_az_assign_role">qesap_az_assign_role</a></li>
@@ -267,6 +269,10 @@ Returns 1 if the string is found in the log file, 0 otherwise.</code></pre>
 
 <p>Get the number of cluster nodes from the inventory.yaml</p>
 
+<h3 id="qesap_get_nodes_names">qesap_get_nodes_names</h3>
+
+<p>Get the cluster nodes&#39; names from the inventory.yaml</p>
+
 <h3 id="qesap_get_terraform_dir">qesap_get_terraform_dir</h3>
 
 <pre><code>Return the path used by the qesap script as -chdir argument for terraform
@@ -404,6 +410,10 @@ remotely executed command.</code></pre>
 <dd>
 
 </dd>
+<dt id="VERBOSE---1-result-in-ansible-playbook-to-be-called-with--vvvv-default-is-0"><b>VERBOSE</b> - 1 result in ansible-playbook to be called with &#39;-vvvv&#39;, default is 0.</dt>
+<dd>
+
+</dd>
 <dt id="TIMEOUT---max-expected-execution-time-default-180sec.-Same-timeout-is-used-both-for-the-execution-of-script_output.yaml-and-for-the-fetch_file.-Timeout-of-the-same-amount-is-started-two-times"><b>TIMEOUT</b> - max expected execution time, default 180sec. Same timeout is used both for the execution of script_output.yaml and for the fetch_file. Timeout of the same amount is started two times.</dt>
 <dd>
 
@@ -512,6 +522,10 @@ Return the local path of the downloaded file.</code></pre>
 
 </dd>
 <dt id="OUT_PATH---path-to-save-file-locally-without-file-name"><b>OUT_PATH</b> - path to save file locally (without file name)</dt>
+<dd>
+
+</dd>
+<dt id="VERBOSE---1-result-in-ansible-playbook-to-be-called-with--vvvv-default-is-01"><b>VERBOSE</b> - 1 result in ansible-playbook to be called with &#39;-vvvv&#39;, default is 0.</dt>
 <dd>
 
 </dd>
@@ -954,6 +968,10 @@ In cases of ambiguous responses, they are considered to be in `running` state.</
 
 </dd>
 </dl>
+
+<h2 id="qesap_az_get_native_fencing_type">qesap_az_get_native_fencing_type</h2>
+
+<pre><code>Gets the native fencing type (spn/msi)</code></pre>
 
 <h2 id="qesap_az_setup_native_fencing_permissions">qesap_az_setup_native_fencing_permissions</h2>
 
