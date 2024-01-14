@@ -26,14 +26,17 @@ sub run {
     my @addons = split(/,/, get_var('SCC_ADDONS', ''));
     my $skip_mu = get_var('PUBLIC_CLOUD_SKIP_MU', 0);
     my $repodir = "/tmp/repos";
-    $repodir = "/opt/repos" if (is_sle_micro);
+    
     # Trigger to skip the download to speed up verification runs
     if ($skip_mu) {
         record_info('Skip download', 'Skipping maintenance update download (triggered by setting)');
     } else {
         assert_script_run('du -sh ~/repos');
         my $timeout = 2400;
-
+        # if (is_sle_micro) {
+        #     $repodir = "/opt/repos" 
+        #     $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir; sudo chmod 777 $repodir");
+        # }
         $args->{my_instance}->retry_ssh_command(cmd => "which rsync || sudo zypper -n in rsync", timeout => 420, retry => 6, delay => 60);
 
         # In Incidents there is INCIDENT_REPO instead of MAINT_TEST_REPO
@@ -63,7 +66,6 @@ sub run {
         # * The --dirs (-d) option is implied whn --files-from is specified.
         # * The --archive (-a) option's behavior does not imply --recursive (-r) when --files-from is specified.
         # --recursive (-r), --update (-u), --archive (-a), --human-readable (-h), --rsh (-e)
-        $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir; sudo chmod 777 $repodir") if (is_sle_micro);
         script_retry("rsync --timeout=$timeout -ruahd -e ssh --files-from /tmp/transfer_repos.txt ~/repos/./ '$remote:$repodir'", timeout => $timeout + 10, retry => 3, delay => 120);
 
         my $total_size = $args->{my_instance}->ssh_script_output(cmd => 'du -hs $repodir');
@@ -76,12 +78,12 @@ sub run {
         $args->{my_instance}->ssh_assert_script_run("sudo find $repodir -name *.repo -exec echo '{}' \\;");
 
         $args->{my_instance}->ssh_assert_script_run("zypper lr -P");
-        if (is_sle_micro) {
-            $args->{my_instance}->ssh_assert_script_run("transactional-update run bash -c '
-                echo BINDDIRS[\"repos\"]=$repodir >> /usr/etc/tukit.conf.d/tukit_repos.conf
-                '");
-            $args->{my_instance}->softreboot(timeout => get_var('PUBLIC_CLOUD_REBOOT_TIMEOUT', 600));
-        }
+        # if (is_sle_micro) {
+        #     $args->{my_instance}->ssh_assert_script_run("transactional-update run bash -c '
+        #         echo BINDDIRS[\"repos\"]=$repodir >> /usr/etc/tukit.conf.d/tukit_repos.conf
+        #         '");
+        #     $args->{my_instance}->softreboot(timeout => get_var('PUBLIC_CLOUD_REBOOT_TIMEOUT', 600));
+        # }
     }
 }
 
