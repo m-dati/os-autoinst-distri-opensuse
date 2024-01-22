@@ -333,7 +333,7 @@ sub allow_openqa_port_selinux {
 
 fully_update_system ($instance);
 
-Connect to the remote host C<$host> using ssh and update the system by
+Connect to the remote host from C<$instance> using ssh and update the system by
 running C<zypper update> twice. The first run will update the package manager,
 the second run will update the system.
 Transactional systems like SLE micro shall use C<transactional_update patch> and reboot. 
@@ -342,24 +342,22 @@ Transactional systems like SLE micro shall use C<transactional_update patch> and
 
 sub fully_update_system {
     my ($instance) = @_;
-    my $ret;
     my $cmd_time = time();
-    if (is_transactional)
-    {
-        my $cmd = "sudo transactional-update -n up";
-        my $cmd_name = "transactional update";
-        # first run, possible update of packager
-        my $ret = $instance->ssh_script_run(cmd => $cmd, timeout => 1500);
-        $instance->softreboot(timeout => get_var('PUBLIC_CLOUD_REBOOT_TIMEOUT', 600));
-        record_info($cmd_name, 'The command ' . $cmd_name . ' took ' . (time() - $cmd_time) . ' seconds.');
-        die "$cmd_name failed with $ret" if ($ret != 0 && $ret != 102 && $ret != 103);
-        # second run, full system update
-        $cmd_time = time();
-        $ret = $instance->ssh_script_run(cmd => $cmd, timeout => 6000);
-        $instance->softreboot(timeout => get_var('PUBLIC_CLOUD_REBOOT_TIMEOUT', 600));
-        record_info($cmd_name, 'The second command ' . $cmd_name . ' took ' . (time() - $cmd_time) . ' seconds.');
-        die "$cmd_name failed with $ret" if ($ret != 0 && $ret != 102);
-    }
+    return 0 unless (is_transactional);
+
+    my $cmd = "sudo transactional-update -n up";
+    my $cmd_name = "transactional update";
+    # first run, possible update of packager
+    my $ret = $instance->ssh_script_run(cmd => $cmd, timeout => 1500);
+    $instance->softreboot(timeout => get_var('PUBLIC_CLOUD_REBOOT_TIMEOUT', 600));
+    record_info($cmd_name, 'The command ' . $cmd_name . ' took ' . (time() - $cmd_time) . ' seconds.');
+    die "$cmd_name failed with $ret" if ($ret != 0 && $ret != 102 && $ret != 103);
+    # second run, full system update
+    $cmd_time = time();
+    $ret = $instance->ssh_script_run(cmd => $cmd, timeout => 6000);
+    $instance->softreboot(timeout => get_var('PUBLIC_CLOUD_REBOOT_TIMEOUT', 600));
+    record_info($cmd_name, 'The second command ' . $cmd_name . ' took ' . (time() - $cmd_time) . ' seconds.');
+    die "$cmd_name failed with $ret" if ($ret != 0 && $ret != 102);
 }
 
 1;

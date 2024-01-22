@@ -15,7 +15,7 @@ use testapi;
 use strict;
 use utils;
 use publiccloud::ssh_interactive "select_host_console";
-use publiccloud::utils qw(is_hardened);
+use version_utils qw(is_sle_micro);
 use maintenance_smelt qw(is_embargo_update);
 
 sub run {
@@ -25,8 +25,7 @@ sub run {
     my $remote = $args->{my_instance}->username . '@' . $args->{my_instance}->public_ip;
     my @addons = split(/,/, get_var('SCC_ADDONS', ''));
     my $skip_mu = get_var('PUBLIC_CLOUD_SKIP_MU', 0);
-    my $repodir = "/opt/repos/";
-    # my $repodir = "/opt/repos/";
+    my $repodir = (is_sle_micro) ? "/opt/repos/" : "/tmp/repos/";
     # Trigger to skip the download to speed up verification runs
     if ($skip_mu) {
         record_info('Skip download', 'Skipping maintenance update download (triggered by setting)');
@@ -54,8 +53,8 @@ sub run {
         foreach my $repo (@repos) {
             assert_script_run("echo $repo | tee -a /tmp/transfer_repos.txt");
         }
-        #VM repos . dir support preparation
-        $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir;sudo chmod 777 $repodir");
+        # VM repos.dir support preparation
+        $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir;sudo chmod 777 $repodir") if (is_sle_micro);
         # Mitigate occasional CSP network problems (especially one CSP is prone to those issues!)
         # Delay of 2 minutes between the tries to give their network some time to recover after a failure
         # For rsync the ~/repos/./ means that the --relative will take efect after.
