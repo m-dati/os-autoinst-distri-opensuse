@@ -25,7 +25,7 @@ sub run {
     my $remote = $args->{my_instance}->username . '@' . $args->{my_instance}->public_ip;
     my @addons = split(/,/, get_var('SCC_ADDONS', ''));
     my $skip_mu = get_var('PUBLIC_CLOUD_SKIP_MU', 0);
-    my $repodir = "/opt/repos/";
+    # my $repodir = "/opt/repos/";
     # Trigger to skip the download to speed up verification runs
     if ($skip_mu) {
         record_info('Skip download', 'Skipping maintenance update download (triggered by setting)');
@@ -54,7 +54,8 @@ sub run {
             assert_script_run("echo $repo | tee -a /tmp/transfer_repos.txt");
         }
         # VM repos.dir support preparation
-        $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir;sudo chmod 777 $repodir");
+        # $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir;sudo chmod 777 $repodir");
+
         # Mitigate occasional CSP network problems (especially one CSP is prone to those issues!)
         # Delay of 2 minutes between the tries to give their network some time to recover after a failure
         # For rsync the ~/repos/./ means that the --relative will take efect after.
@@ -62,16 +63,16 @@ sub run {
         # * The --dirs (-d) option is implied whn --files-from is specified.
         # * The --archive (-a) option's behavior does not imply --recursive (-r) when --files-from is specified.
         # --recursive (-r), --update (-u), --archive (-a), --human-readable (-h), --rsh (-e)
-        script_retry("rsync --timeout=$timeout -ruahd -e ssh --files-from /tmp/transfer_repos.txt ~/repos/./ '$remote:$repodir'", timeout => $timeout + 10, retry => 3, delay => 120);
+        script_retry("rsync --timeout=$timeout -ruahd -e ssh --files-from /tmp/transfer_repos.txt ~/repos/./ '$remote:/tmp/repos/'", timeout => $timeout + 10, retry => 3, delay => 120);
 
         my $total_size = $args->{my_instance}->ssh_script_output(cmd => 'du -hs $repodir');
         record_info("Repo size", "Total repositories size: $total_size");
         $args->{my_instance}->ssh_assert_script_run("find ./ -name '*.rpm' -exec du -h '{}' + | sort -h > /tmp/rpm_list.txt", timeout => 60);
         $args->{my_instance}->upload_log('/tmp/rpm_list.txt');
 
-        $args->{my_instance}->ssh_assert_script_run("sudo find $repodir -name *.repo -exec sed -i 's,http://,$repodir,g' '{}' \\;");
-        $args->{my_instance}->ssh_assert_script_run("sudo find $repodir -name *.repo -exec zypper ar -p10 '{}' \\;");
-        $args->{my_instance}->ssh_assert_script_run("sudo find $repodir -name *.repo -exec echo '{}' \\;");
+        $args->{my_instance}->ssh_assert_script_run("sudo find /tmp/repos/ -name *.repo -exec sed -i 's,http://,/tmp/repos/,g' '{}' \\;");
+        $args->{my_instance}->ssh_assert_script_run("sudo find /tmp/repos/ -name *.repo -exec zypper ar -p10 '{}' \\;");
+        $args->{my_instance}->ssh_assert_script_run("sudo find /tmp/repos/ -name *.repo -exec echo '{}' \\;");
 
         $args->{my_instance}->ssh_assert_script_run("zypper lr -P");
     }
