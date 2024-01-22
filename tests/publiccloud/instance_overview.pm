@@ -17,7 +17,7 @@ use testapi;
 use strict;
 use utils;
 use publiccloud::utils;
-use version_utils qw(is_sle is_sle_micro);
+use version_utils qw(is_sle);
 use Utils::Logging 'tar_and_upload_log';
 
 sub run {
@@ -45,8 +45,7 @@ sub run {
 
     # Check for bsc#1165915
     zypper_call("ref");
-    my $register = (is_sle_micro) ? "transactional-update register --status-text" : "SUSEConnect --status-text";
-    assert_script_run($register, 300);
+    assert_script_run("SUSEConnect --status-text", 300);
 
     zypper_call("lr -d");
 
