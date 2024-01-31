@@ -20,17 +20,23 @@ sub run {
     my $runtime = $args->{runtime};
 
     select_serial_terminal();
-
     my $docker_version = "";
     my $podman_version = "";
+    my $ret;
+    script_run("sudo $runtime network ls") unless ($runtime);
+    script_run("sudo ls -l /var/lib/containers/storage/libpod/");
     if ($runtime eq "docker") {
         $docker_version = get_docker_version();
+        $ret = "bridge";
     } elsif ($runtime eq "podman") {
         $podman_version = get_podman_version();
+        $ret = "podman";
     } else {
         return;
     }
-
+    script_run("sudo $runtime network create $ret||true") if $ret;
+    $ret = script_output("sudo $runtime network ls");
+    record_info("CNI", $ret);
     # From https://docs.docker.com/storage/bind-mounts/
     # The --mount flag does not support z or Z options for modifying selinux labels.
     my $Z = $runtime eq "podman" ? ",Z" : "";
@@ -59,7 +65,7 @@ sub run {
     assert_script_run("touch $test_dir/$test_file");
     assert_script_run("$runtime run -d --name $test_container -v \$PWD/$test_dir:/$test_dir:Z $test_image");
     # NOTE: When https://github.com/containers/podman/issues/19529 is solved we must add a version check here
-    my $ret = script_run("$runtime run --rm --volumes-from $test_container $test_image ls /$test_dir/$test_file");
+    $ret = script_run("$runtime run --rm --volumes-from $test_container $test_image ls /$test_dir/$test_file");
     if ($ret != 0) {
         if ($runtime eq "podman" && (version->parse($podman_version) < version->parse('4.7.0'))) {
             record_soft_failure("gh#containers/podman#19529 - Unexpected error with --volumes-from") if ($ret != 0 && $runtime == "podman");

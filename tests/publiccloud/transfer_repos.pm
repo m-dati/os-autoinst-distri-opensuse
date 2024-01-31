@@ -53,6 +53,8 @@ sub run {
         }
         # VM repos.dir support preparation
         $args->{my_instance}->ssh_assert_script_run("sudo mkdir $repodir;sudo chmod 777 $repodir");
+        # Debug: list on log the repos in transfer to vm:
+        script_run("ls -lR ~/repos; cat /tmp/transfer_repos.txt");
         # Mitigate occasional CSP network problems (especially one CSP is prone to those issues!)
         # Delay of 2 minutes between the tries to give their network some time to recover after a failure
         # For rsync the ~/repos/./ means that the --relative will take efect after.
