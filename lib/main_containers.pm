@@ -101,6 +101,8 @@ sub load_host_tests_podman {
         load_container_engine_privileged_mode($run_args);
         loadtest 'containers/podman_bci_systemd';
         loadtest 'containers/podman_pods';
+        # temporary moved here:
+        load_volume_tests($run_args);
         # Default for ALP is Netavark
         loadtest('containers/podman_network_cni') unless (is_alp || is_sle_micro('6.0+'));
         # Firewall is not installed in JeOS OpenStack, MicroOS and Public Cloud images
@@ -116,7 +118,8 @@ sub load_host_tests_podman {
             loadtest 'containers/rootless_podman';
             loadtest 'containers/podman_remote' if is_sle '>15-sp2';
         }
-        load_volume_tests($run_args);
+        # temporary moved up
+        # load_volume_tests($run_args);
     }
 }
 

@@ -34,8 +34,9 @@ sub run {
     } else {
         return;
     }
-    script_run("sudo $runtime network create $ret||true") if $ret;
-    $ret = script_output("sudo $runtime network ls");
+    my $net = $ret;
+
+    $ret = script_output("sudo $runtime network ls; ls -lR /etc/cni/net.d");
     record_info("CNI", $ret);
     # From https://docs.docker.com/storage/bind-mounts/
     # The --mount flag does not support z or Z options for modifying selinux labels.
@@ -53,7 +54,8 @@ sub run {
 
     # Build image
     assert_script_run("$runtime build -t $test_image -f $test_dir/Dockerfile $test_dir/");
-
+    # crea default net if none
+    script_run("sudo $runtime network create $net||true") if $net;
     # Test --volumes-from
     # Case 1: Check that the volume from container is visible in another container
     assert_script_run("$runtime run -d --name $test_container $test_image");
@@ -168,4 +170,8 @@ sub post_run_hook {
     my ($self) = @_;
     cleanup();
     $self->SUPER::post_run_hook;
+}
+
+sub test_flags {
+    return {fatal => 1, publiccloud_multi_module => 1};
 }
