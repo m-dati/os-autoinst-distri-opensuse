@@ -9,12 +9,34 @@
 
 use Mojo::Base 'containers::basetest';
 use testapi;
-use utils qw(script_retry);
+use utils qw(script_retry zypper_call);
 use serial_terminal 'select_serial_terminal';
-use version_utils qw(package_version_cmp);
-use containers::utils qw(registry_url container_ip);
-use containers::utils qw(get_podman_version);
+use version_utils qw(package_version_cmp is_transactional is_sle_micro);
+use containers::utils qw(get_podman_version registry_url container_ip);
+use transactional qw(trup_call check_reboot_changes);
 
+sub switch_to_cni {
+    my @pkgs = qw(cni cni-plugins);
+    # exit if already cni present
+    return 1
+      if (script_output("podman info --format {{.Host.NetworkBackend}}") =~ /^cni/);
+    # skip if already installed
+    unless (script_run("rpm -q @pkgs") eq 0) {
+        if (is_transactional) {
+            trup_call("pkg install @pkgs");
+            check_reboot_changes;
+        } else {
+            zypper_call("in @pkgs");
+        }
+    }
+    # change network backend to *cni* (avoid newline in file)
+    assert_script_run(qq(sudo printf "cni" > /var/lib/containers/storage/defaultNetworkBackend));
+    record_info('Switching', "New podman network:" . script_run("cat /var/lib/containers/storage/defaultNetworkBackend"));
+    # reset the storage back to the initial state
+    assert_script_run("podman system reset --force", timeout => 300, fail_message => "podman reset error");
+    validate_script_output("podman info --format {{.Host.NetworkBackend}}", sub { /^cni/ });
+    return 1;
+}
 
 sub run() {
 
@@ -22,9 +44,13 @@ sub run() {
     select_serial_terminal;
     my $podman = $self->containers_factory('podman');
 
-
     my $podman_version = get_podman_version();
     my $supports_network = (package_version_cmp($podman_version, '3.1.0') >= 0) ? 0 : 1;
+    # cni removed since podman 5.x
+    return unless (package_version_cmp($podman_version, '5.0.0') < 0 || is_sle_micro('<6.0'));
+    # check cni network
+    switch_to_cni();
+    record_info('Network', 'cni is default network backend');
 
     record_info('Create', 'Create new networks named newnet1 and newnet2');
     assert_script_run('podman network create newnet1');
