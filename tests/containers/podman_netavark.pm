@@ -10,9 +10,8 @@
 use Mojo::Base 'containers::basetest';
 use testapi;
 use serial_terminal qw(select_serial_terminal);
-use version_utils qw(package_version_cmp is_transactional is_jeos is_leap is_sle_micro is_leap_micro is_sle is_microos is_public_cloud);
+use version_utils qw(package_version_cmp is_jeos is_leap is_sle_micro is_leap_micro is_sle is_microos is_public_cloud);
 use containers::utils qw(get_podman_version registry_url);
-use transactional qw(trup_call check_reboot_changes);
 use utils qw(zypper_call);
 use Utils::Systemd qw(systemctl);
 use Utils::Architectures qw(is_s390x);
@@ -64,22 +63,22 @@ sub _cleanup {
     validate_script_output('podman network ls', sub { /podman\s+bridge/ });
 }
 
-sub switch_to_netavark {
-    my @pkgs = qw(netavark aardvark-dns);
-
-    if (is_transactional) {
-        trup_call("pkg install @pkgs");
-        check_reboot_changes;
-    } else {
-        zypper_call("in @pkgs");
-    }
-
-    # change network backend to *netavark*
-    assert_script_run(q(echo -e '[Network]\nnetwork_backend="netavark"' >> /etc/containers/containers.conf));
-    # reset the storage back to the initial state
-    assert_script_run('podman system reset --force');
-    validate_script_output('podman info --format {{.Host.NetworkBackend}}', sub { /netavark/ });
-}
+##sub switch_to_netavark {
+##    my @pkgs = qw(netavark aardvark-dns);
+##
+##    if (is_transactional) {
+##        trup_call("pkg install @pkgs");
+##        check_reboot_changes;
+##    } else {
+##        zypper_call("in @pkgs");
+##    }
+##
+##    # change network backend to *netavark*
+##    assert_script_run(q(echo -e '[Network]\nnetwork_backend="netavark"' >> /etc/containers/containers.conf));
+##    # reset the storage back to the initial state
+##    assert_script_run('podman system reset --force');
+##    validate_script_output('podman info --format {{.Host.NetworkBackend}}', sub { /netavark/ });
+##}
 
 sub run {
     my ($self, $args) = @_;
@@ -92,14 +91,15 @@ sub run {
         record_info('No support', "Netavark backend is not supported in podman-$podman_version");
         return 1;
     }
-
+    record_info("cni check", is_cni_default);
     if (is_cni_default || is_cni_in_tw) {
-        switch_to_netavark;
+        # switch_to_netavark;
+        $podman->switch_network_backend("netavark");
     } else {
         record_info('default', 'netavark should be the default network backend');
         zypper_call('in aardvark-dns') if is_sle;
     }
-
+    record_info("cleanup system");
     $podman->cleanup_system_host();
 
     # it is turned off in
