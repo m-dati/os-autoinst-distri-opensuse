@@ -700,9 +700,10 @@ sub systemd_time_to_second
 sub extract_analyze_time {
     my $str_time = shift;
     my $res = {};
+    my $ADD_FOR_TEST = "1h";    # Additional hour for testing purpose
     ($str_time) = split(/\r?\n/, $str_time, 2);
     $str_time =~ s/Startup finished in\s*//;
-    $str_time =~ s/=(.+)$/+$1 (overall)/;
+    $str_time =~ s/=(.+)$/+$ADD_FOR_TEST $1 (overall)/;
     for my $time (split(/\s*\+\s*/, $str_time)) {
         $time = trim($time);
         my ($time, $type) = $time =~ /^(.+)\s*\((\w+)\)$/;
@@ -744,6 +745,7 @@ sub do_systemd_analyze_time {
         # handle_boot_failure: soft exit from measurement.
         return (0, 0);
     }
+
     push @ret, extract_analyze_time($output);
 
     $output = $instance->run_ssh_command(cmd => 'systemd-analyze blame', proceed_on_failure => 1);
