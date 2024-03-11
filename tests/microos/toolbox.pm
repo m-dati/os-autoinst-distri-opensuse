@@ -50,6 +50,63 @@ sub toolbox_has_repos {
     return 1;
 }
 
+sub tolbox_zyup {
+    my ($tlog, $log) = @_;
+    script_output('toolbox -- zypper -n up 2>&1 | tee ' . $tlog, timeout => 300);
+    script_run('toolbox -- rpm -qa 2>&1 > ' . $log);
+    # script_output('cat ' . $tlog);
+}
+
+sub toolbox_update {
+    # Update toolbox as rootfull user
+    my $error;
+    my $msg;
+    my $tolboxlog = "/var/tmp/toolbox_zypper_up.txt";
+    my $before = "/var/tmp/toolbox_repos_before_update.txt";
+    my $after = "/var/tmp/toolbox_repos_after_update.txt";
+
+    script_run('toolbox -- rpm -qa 2>&1 > ' . $before);
+    upload_logs($before);
+    my $out = tolbox_zyup($tolboxlog, $after);
+    # check timezone install error:
+    if ($out =~ m/error:\stimezone-.*:\sinstall\sfailed/) {
+        # w.a. due to timezone update issue in poo#156925:
+        # remove normal config. UTC link from localtime
+        script_run('toolbox -- date');
+        script_run('toolbox -r -- rm -rf /etc/localtime');
+        script_run('toolbox -r -- ln -s /usr/share/zoneinfo/GMT /etc/localtime');
+        script_run('toolbox -- date');
+        # retry update n.1
+        $out = tolbox_zyup($tolboxlog, $after);
+        if ($out =~ m/error:\stimezone-.*:\sinstall\sfailed/) {
+            # remove pkg timezone, but dependecies
+            script_run('toolbox -r -- rpm -e --nodeps timezone 2>&1');
+            # retry update n.2
+            my $out = tolbox_zyup($tolboxlog, $after);
+            if ($out =~ m/error:\stimezone-.*:\sinstall\sfailed/) {
+                $error = 1;
+                $msg = "Timezone package install failed.";
+            }
+        } elsif ($out =~ m/error.*\sinstall\sfailed/) {
+            $error = 1;
+            $msg = "Install failed.";
+        } else {
+            # restore normal config. UTC link
+            $res = script_run('toolbox -r -- ln -sf /etc/localtime /usr/share/zoneinfo/UTC');
+            script_run('toolbox -- date');
+            script_run('toolbox -r -- rm -rf /etc/localtime');
+            script_run('toolbox -r -- ln -s /usr/share/zoneinfo/UTC /etc/localtime');
+            script_run('toolbox -- date');
+        }
+    } elsif ($out =~ m/error.*\sinstall\sfailed/) {
+        $error = 1;
+        $msg = "Install failed.";
+    }
+    upload_logs($tolboxlog);
+    upload_logs($after);
+    die "zypper up failed within toolbox.$msg See $tolboxlog" if ($error);
+}
+
 sub run {
     my ($self) = @_;
     select_console 'root-console';
@@ -110,10 +167,7 @@ sub run {
     my $toolbox_has_repos = toolbox_has_repos();
     if ($toolbox_has_repos) {
         assert_script_run 'toolbox -r -- zypper -n ref', timeout => 300;
-        if (script_run('toolbox -- zypper -n up 2>&1 > /var/tmp/toolbox_zypper_up.txt', timeout => 300) != 0) {
-            upload_logs('/var/tmp/toolbox_zypper_up.txt');
-            die "zypper up failed within toolbox";
-        }
+        toolbox_update();
     }
 
     clean_container_host(runtime => 'podman');
