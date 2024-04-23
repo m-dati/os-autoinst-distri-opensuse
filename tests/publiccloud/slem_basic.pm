@@ -48,6 +48,12 @@ sub check_avc {
     }
 }
 
+sub is_scc_registered {
+    my $res = script_run("SUSEconnect -s | grep 'Not Registered'");
+    return 0 if ($res == 0);    # not registerd
+    return 1;
+}
+
 sub run {
     my ($self, $args) = @_;
     my $provider;
@@ -56,20 +62,20 @@ sub run {
 
     select_serial_terminal();
 
-    if ($qam) {
+    if ($qam or $args->{my_instance}) {
         $instance = $self->{my_instance} = $args->{my_instance};
         $provider = $self->{provider} = $args->{my_provider};
     } else {
         $provider = $self->provider_factory();
         $instance = $self->{my_instance} = $provider->create_instance(check_guestregister => 0);
     }
-    $provider->{username} = 'suse';
+    # $provider->{username} = 'suse';
 
     # On SLEM 5.2+ check that we don't have any SELinux denials. This needs to happen before anything else is ongoing
     $self->check_avc() unless (is_sle_micro('=5.1'));
 
     my $test_package = get_var('TEST_PACKAGE', 'jq');
-    registercloudguest($instance);
+    registercloudguest($instance) unless (is_scc_registered);
     $instance->run_ssh_command(cmd => 'zypper lr -d', timeout => 600);
     $instance->run_ssh_command(cmd => 'systemctl is-enabled issue-generator');
     $instance->run_ssh_command(cmd => 'systemctl is-enabled transactional-update.timer');
@@ -85,6 +91,8 @@ sub run {
         die("Testing package \'$test_package\' is already installed, choose a different package!");
     }
     $instance->run_ssh_command(cmd => 'sudo transactional-update -n pkg install ' . $test_package, timeout => 600);
+    # workaround for Latest sle-micro 6.0+ SELinux enforced:
+    $instance->run_ssh_command(cmd => 'sudo transactional-update --continue setup-selinux', timeout => 360) if (is_sle_micro('6.0+'));
     $instance->softreboot();
     $instance->run_ssh_command(cmd => 'rpm -q ' . $test_package);
 
