@@ -616,12 +616,25 @@ sub measure_boottime() {
     $ret->{kernel_release} = $instance->run_ssh_command(cmd => 'uname -r', proceed_on_failure => 1);
     $ret->{kernel_version} = $instance->run_ssh_command(cmd => 'uname -v', proceed_on_failure => 1);
 
-    # Do logging to openqa UI
     $Data::Dumper::Sortkeys = 1;
+    my $dir = "/var/log";
+    my @logs;
+    my @missing_logs;
+
+    # Select existing files
+    ($instance->run_ssh_command(cmd => "test -e $dir/" . $_, timeout => 0, proceed_on_failure => 1) == 0) ? push(@logs, $_) : push(@missing_logs, $_)
+      foreach (qw(cloudregister cloud-init.log cloud-init-output.log messages NetworkManager));
+
+    # Missing files info
+    record_info("Logs missing", "Logs not found in $dir: " . join ', ', @missing_logs) if ($#missing_logs > 0);
+
+    # Upload existing logs to openqa  UI
+    if ($#logs > 0) {
+        $instance->run_ssh_command(cmd => 'sudo chmod a+r ' . join(' ', map { "$dir/$_" } @logs), proceed_on_failure => 1);
+        $instance->upload_log("$dir/" . $_, log_name => 'measure_boottime_' . $_ . '.txt', quiet => 1, failok => 1) foreach (@logs);
+    }
+
     record_info("RESULTS", Dumper($ret));
-    my @logs = qw(cloudregister cloud-init.log cloud-init-output.log messages NetworkManager);
-    $instance->run_ssh_command(cmd => 'sudo chmod a+r ' . join(' ', map { "/var/log/$_" } @logs));
-    $instance->upload_log("/var/log/" . $_, log_name => 'measure_boottime_' . $_ . '.txt', failok => 1) foreach (@logs);
     return $ret;
 }
 
