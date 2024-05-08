@@ -259,7 +259,7 @@ sub upload_log {
 
     my $tmpdir = script_output('mktemp -d');
     my $dest = $tmpdir . '/' . basename($remote_file);
-    my $ret = $self->scp('remote:' . $remote_file, $dest);
+    my $ret = $self->scp('remote:' . $remote_file, $dest, %args);
     upload_logs($dest, %args) if (defined($ret) && $ret == 0);
     assert_script_run("test -d '$tmpdir' && rm -rf '$tmpdir'");
 }
@@ -576,6 +576,33 @@ sub network_speed_test() {
     record_info("curl $rmt_host", $self->run_ssh_command(cmd => "curl -w '$write_out' -o /dev/null -v https://$rmt_host/", proceed_on_failure => 1));
 }
 
+=head2 check_upload_logs
+
+    check_upload_logs();
+
+    Check file status and upload logs ok to UI.
+=cut
+
+sub check_upload_logs {
+    my ($self, $dir, @files) = @_;
+    my @logs = ();
+    my @missing_logs = ();
+    # Select existing files
+    foreach (@files) {
+        my $x = $self->ssh_script_run(cmd => "test -e $dir/" . $_, quiet => 1, proceed_on_failure => 1);
+        isok($x) ? push(@logs, $_) : push(@missing_logs, $_);
+    }
+    # $self->ssh_script_run(cmd => "cd $dir && ls -x " . join(' ', @logs) . " && cd", quiet => 0, proceed_on_failure => 1) if ($#logs > 0);
+    record_info("Logs missing", "Logs not found in $dir: " . join(', ', @missing_logs)) if ($#missing_logs > 0);
+    # Upload existing logs to openqa  UI
+    if ($#logs > 0) {
+        $self->ssh_script_run(cmd => 'sudo chmod a+r ' . join(' ', map { "$dir/$_" } @logs), quiet => 1, proceed_on_failure => 1);
+        $self->upload_log("$dir/" . $_, log_name => 'measure_boottime_' . $_ . '.txt', quiet => 1, failok => 1) foreach (@logs);
+    }
+    # uploaded logs
+    return (@logs);
+}
+
 =head2 measure_boottime
 
     measure_boottime();
@@ -618,21 +645,23 @@ sub measure_boottime() {
 
     $Data::Dumper::Sortkeys = 1;
     my $dir = "/var/log";
-    my @logs;
-    my @missing_logs;
+    my @logs = qw(cloudregister cloud-init.log cloud-init-output.log messages NetworkManager);
 
-    # Select existing files
-    ($instance->run_ssh_command(cmd => "test -e $dir/" . $_, timeout => 0, proceed_on_failure => 1) == 0) ? push(@logs, $_) : push(@missing_logs, $_)
-      foreach (qw(cloudregister cloud-init.log cloud-init-output.log messages NetworkManager));
+    $instance->check_upload_logs($dir, @logs);
+    # # Select existing files
+    # isok($instance->run_ssh_command(cmd => "test -e $dir/" . $_, timeout => 0, proceed_on_failure => 1)) ? push(@logs, $_) : push(@missing_logs, $_)
+    #   foreach (qw(cloudregister cloud-init.log cloud-init-output.log messages NetworkManager));
 
-    # Missing files info
-    record_info("Logs missing", "Logs not found in $dir: " . join ', ', @missing_logs) if ($#missing_logs > 0);
+    # $instance->run_ssh_command(cmd => "cd $dir && ls -x " . join(' ', @logs) . " && cd", quiet => 0, proceed_on_failure => 1) if ($#logs > 0);
 
-    # Upload existing logs to openqa  UI
-    if ($#logs > 0) {
-        $instance->run_ssh_command(cmd => 'sudo chmod a+r ' . join(' ', map { "$dir/$_" } @logs), proceed_on_failure => 1);
-        $instance->upload_log("$dir/" . $_, log_name => 'measure_boottime_' . $_ . '.txt', quiet => 1, failok => 1) foreach (@logs);
-    }
+    # # Missing files info
+    # record_info("Logs missing", "Logs not found in $dir: " . join(', ', @missing_logs)) if ($#missing_logs > 0);
+
+    # # Upload existing logs to openqa  UI
+    # if ($#logs > 0) {
+    #     $instance->run_ssh_command(cmd => 'sudo chmod a+r ' . join(' ', map { "$dir/$_" } @logs), proceed_on_failure => 1);
+    #     $instance->upload_log("$dir/" . $_, log_name => 'measure_boottime_' . $_ . '.txt', quiet => 1, failok => 1) foreach (@logs);
+    # }
 
     record_info("RESULTS", Dumper($ret));
     return $ret;
