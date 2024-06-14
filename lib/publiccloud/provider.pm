@@ -712,14 +712,23 @@ Input: <jq-query-format> string; <empty> = no query then full output of data str
 E.g: to get the VM instance name from json data structure, the call is: 
     get_terraform_output(".vm_name.value[0]");
 To get the complete output structure, the call is:
-    get_terraform_output();
+    get_terraform_output(".");
 
 =cut
 
 sub get_terraform_output {
     my ($self, $jq_query) = @_;
+    # cuurent dir saved
+    my $dir = `pwd`;
+    # find terraform dir from parent (first matching)
+    my $cd = `find .. -name *.tfstate | sed 1q | xargs dirname 2>/dev/null`;
+    # terraform state file check
+    return -1 unless ($cd && script_run("cd $cd") == 0);
+
     my $res = script_output("terraform output -no-color -json | jq -r '$jq_query' 2>/dev/null", proceed_on_failure => 1);
-    # jq 'null' shall return empty
+    #restore
+    script_run("cd $dir");
+    # 'null' string shall return empty
     return $res unless ($res =~ /^null$/);
 }
 
