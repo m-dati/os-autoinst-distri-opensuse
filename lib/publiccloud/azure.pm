@@ -636,13 +636,20 @@ sub cleanup {
     select_host_console(force => 1);
 
     $self->get_image_version() if (get_var('PUBLIC_CLOUD_BUILD'));
-
-    if (!check_var('PUBLIC_CLOUD_SLES4SAP', 1) && defined($args->{my_instance}->{instance_id})) {
-        my $id = $args->{my_instance}->{instance_id};
-        script_run("az vm boot-diagnostics get-boot-log --ids $id | jq -r '.' > bootlog.txt", timeout => 120, die_on_timeout => 0);
+    # serial console log:
+    my $query = check_var('PUBLIC_CLOUD_SLES4SAP', 1) ? "hana_name.value[0]" : ".vm_name.value[0]";
+    my $instance_id = $self->get_terraform_output($query);
+    record_info("instance", $instance_id);
+    if ($instance_id ne "") {
+        script_run("az vm boot-diagnostics get-boot-log --ids $instance_id | jq -r '.' > bootlog.txt", timeout => 120, die_on_timeout => 0);
         upload_logs("bootlog.txt", failok => 1);
+    } else {
+        record_info("Warn", "instance_id missing", result => 'fail');
     }
-    $self->SUPER::cleanup();
+    # SAP clanup skip
+    if (!check_var('PUBLIC_CLOUD_SLES4SAP', 1)) {
+        $self->SUPER::cleanup();
+    }
 }
 
 1;

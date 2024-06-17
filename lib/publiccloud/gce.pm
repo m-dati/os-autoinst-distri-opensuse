@@ -16,6 +16,7 @@ use Mojo::JSON 'decode_json';
 use testapi;
 use utils;
 use publiccloud::ssh_interactive 'select_host_console';
+use Data::Dumper;
 
 sub init {
     my ($self, %params) = @_;
@@ -167,20 +168,25 @@ sub start_instance
 sub cleanup {
     my ($self, $args) = @_;
     select_host_console(force => 1);
-
+    # serial console log:
     my $region = $self->{provider_client}->{region};
     my $project = $self->{provider_client}->{project_id};
-    my $instance_id = $self->get_terraform_output(".vm_name.value[0]");
+    my $query = check_var('PUBLIC_CLOUD_SLES4SAP', 1) ? ".hana_name.value[0]" : ".vm_name.value[0]";
+    my $instance_id = $self->get_terraform_output($query);
     # gce provides full serial log, so extended timeout
-    if (!check_var('PUBLIC_CLOUD_SLES4SAP', 1) && defined($instance_id)) {
-        if ($instance_id =~ /$self->{resource_name}/) {
-            script_run("gcloud compute --project=$project instances get-serial-port-output $instance_id --zone=$region --port=1 > instance_serial.txt", timeout => 180);
-            upload_logs("instance_serial.txt", failok => 1);
-        } else {
-            record_info("Warn", "instance_id " . ($instance_id) ? $instance_id : "empty", result => 'fail');
-        }
+    record_info("instance", $instance_id . "\n" . Dumper($self));
+    if ($instance_id ne "") {
+        my $res = script_run("gcloud compute --project=$project instances get-serial-port-output $instance_id --zone=$region --port=1 > instance_serial.txt", timeout => 180);
+        script_run("gcloud compute --project=$project instances get-serial-port-output $instance_id --port=1 > instance_serial.txt", timeout => 180)
+          if ($res != 0);    # zone::region mismatch
+        upload_logs("instance_serial.txt", failok => 1);
+    } else {
+        record_info("Warn", "instance_id missing", result => 'fail');
     }
-    $self->SUPER::cleanup();
+    # SAP clanup skip
+    if (!check_var('PUBLIC_CLOUD_SLES4SAP', 1)) {
+        $self->SUPER::cleanup();
+    }
 }
 
 1;

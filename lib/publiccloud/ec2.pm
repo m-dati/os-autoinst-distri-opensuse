@@ -210,20 +210,25 @@ sub img_proof {
 
 sub cleanup {
     my ($self, $args) = @_;
-    script_run('cd ~/terraform');
-    my $instance_id = script_output('terraform output -json | jq -r ".vm_name.value[0]"', proceed_on_failure => 1);
-    script_run('cd');
 
     select_host_console(force => 1);
-    if (!check_var('PUBLIC_CLOUD_SLES4SAP', 1) && defined($instance_id)) {
+    # serial console log:
+    my $query = check_var('PUBLIC_CLOUD_SLES4SAP', 1) ? "hana_name.value[0]" : ".vm_name.value[0]";
+    my $instance_id = $self->get_terraform_output($query); record_info("instance", $instance_id);
+    record_info("instance", $instance_id);
+    if ($instance_id ne "") {
         script_run("aws ec2 get-console-output --instance-id $instance_id | jq -r '.Output' > console.txt");
         upload_logs("console.txt", failok => 1);
-
         script_run("aws ec2 get-console-screenshot --instance-id $instance_id | jq -r '.ImageData' | base64 --decode > console.jpg");
         upload_logs("console.jpg", failok => 1);
+    } else {
+        record_info("Warn", "instance_id missing", result => 'fail');
     }
-    $self->terraform_destroy() if ($self->terraform_applied);
-    $self->delete_keypair();
+    # SAP clanup skip
+    if (!check_var('PUBLIC_CLOUD_SLES4SAP', 1)) {
+        $self->terraform_destroy() if ($self->terraform_applied);
+        $self->delete_keypair();
+    }
 }
 
 sub describe_instance
