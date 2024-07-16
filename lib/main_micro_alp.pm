@@ -368,7 +368,7 @@ sub load_tests {
         return 1;
     }
 
-    if (get_var('BOOT_HDD_IMAGE')) {
+    if (get_var('BOOT_HDD_IMAGE') and not is_selfinstall) {
         load_boot_from_disk_tests;
     } elsif (is_selfinstall) {
         load_selfinstall_boot_tests;

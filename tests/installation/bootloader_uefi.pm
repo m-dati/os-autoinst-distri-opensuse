@@ -90,7 +90,9 @@ sub run {
     }
 
     # aarch64 firmware 'tianocore' can take longer to load
-    my $bootloader_timeout = is_aarch64 ? 90 : 15;
+    # and ppc64le fw too.
+    my $bootloader_timeout = (is_aarch64 || is_ppc64le) ? 90 : 15;
+
     if (get_var('UEFI_HTTP_BOOT') || get_var('UEFI_HTTPS_BOOT')) {
         tianocore_http_boot;
     }

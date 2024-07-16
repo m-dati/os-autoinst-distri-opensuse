@@ -386,6 +386,7 @@ sub wait_grub {
     push @tags, 'grub2';
     push @tags, 'boot-live-' . get_var('DESKTOP') if get_var('LIVETEST');    # LIVETEST won't to do installation and no grub2 menu show up
     push @tags, 'bootloader' if get_var('OFW');
+    push @tags, qw(bootloader-ofw-sle-micro-ppc-grub-menu bootloader-ofw-sle-micro-ppc) if (get_var('OFW') and is_sle_micro);
     push @tags, 'encrypted-disk-password-prompt-grub', 'encrypted-disk-password-prompt' if get_var('ENCRYPT');
     if (get_var('ONLINE_MIGRATION')) {
         push @tags, 'migration-source-system-grub2';
@@ -650,12 +651,21 @@ sub grub_select {
         # Workaround for poo#118336
         push @tags, 'linux-login' if check_var('DESKTOP', 'textmode');
         push @tags, 'displaymanager' if check_var('DESKTOP', 'gnome');
+        push @tags, 'linux-login-microos' if (is_micro);
 
-        assert_screen(\@tags);
+        assert_screen(\@tags, timeout => 600);
+        # prepare for login [MD]
+        if (is_sle_micro and match_has_tag('linux-login-microos')) {
+            send_key 'ret';
+            type_string("root");
+            type_password("nots3cr3t");
+            return;
+        }
 
         if (match_has_tag 'grub2') {
             send_key 'ret';
         }
+
     }
     elsif (!get_var('S390_ZKVM')) {
         # confirm default choice
