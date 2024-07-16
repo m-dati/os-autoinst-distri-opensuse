@@ -17,7 +17,12 @@
       <li><a href="#az_version">az_version</a></li>
       <li><a href="#az_group_create">az_group_create</a></li>
       <li><a href="#az_group_name_get">az_group_name_get</a></li>
-      <li><a href="#az_network_vnet_create">az_network_vnet_create</a></li>
+      <li><a href="#az_group_delete">az_group_delete</a></li>
+      <li><a href="#az_network_vnet_create">az_network_vnet_create</a>
+        <ul>
+          <li><a href="#az_network_vnet_get">az_network_vnet_get</a></li>
+        </ul>
+      </li>
       <li><a href="#az_network_nsg_create">az_network_nsg_create</a></li>
       <li><a href="#az_network_nsg_rule_create">az_network_nsg_rule_create</a></li>
       <li><a href="#az_network_publicip_create">az_network_publicip_create</a></li>
@@ -27,6 +32,9 @@
       <li><a href="#az_network_lb_rule_create">az_network_lb_rule_create</a></li>
       <li><a href="#az_vm_as_create">az_vm_as_create</a></li>
       <li><a href="#az_vm_create">az_vm_create</a></li>
+      <li><a href="#az_vm_list">az_vm_list</a></li>
+      <li><a href="#az_vm_instance_view_get">az_vm_instance_view_get</a></li>
+      <li><a href="#az_vm_wait_running">az_vm_wait_running</a></li>
       <li><a href="#az_vm_openport">az_vm_openport</a></li>
       <li><a href="#az_vm_wait_cloudinit">az_vm_wait_cloudinit</a></li>
       <li><a href="#az_nic_id_get">az_nic_id_get</a></li>
@@ -35,6 +43,14 @@
       <li><a href="#az_ipconfig_name_get">az_ipconfig_name_get</a></li>
       <li><a href="#az_ipconfig_update">az_ipconfig_update</a></li>
       <li><a href="#az_ipconfig_pool_add">az_ipconfig_pool_add</a></li>
+      <li><a href="#az_vm_diagnostic_log_enable">az_vm_diagnostic_log_enable</a></li>
+      <li><a href="#az_vm_diagnostic_log_get">az_vm_diagnostic_log_get</a></li>
+      <li><a href="#az_storage_account_create">az_storage_account_create</a></li>
+      <li><a href="#az_network_peering_create">az_network_peering_create</a></li>
+      <li><a href="#az_network_peering_list">az_network_peering_list</a></li>
+      <li><a href="#az_network_peering_delete">az_network_peering_delete</a></li>
+      <li><a href="#az_disk_create">az_disk_create</a></li>
+      <li><a href="#az_resource_delete">az_resource_delete</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap/azure_cli.pm</h1>
@@ -69,9 +85,27 @@
 
 <h2 id="az_group_name_get">az_group_name_get</h2>
 
-<pre><code>az_group_name_get();</code></pre>
+<pre><code>my $ret = az_group_name_get();</code></pre>
 
-<p>Get the name of all existing Resource groups in the current subscription</p>
+<p>Get the name of all existing Resource Group in the current subscription</p>
+
+<h2 id="az_group_delete">az_group_delete</h2>
+
+<pre><code>az_group_delete( name =&gt; &#39;openqa-rg&#39; );</code></pre>
+
+<p>Delete a resource group with a specific name</p>
+
+<dl>
+
+<dt id="name---full-name-of-the-resource-group1"><b>name</b> - full name of the resource group</dt>
+<dd>
+
+</dd>
+<dt id="timeout---timeout-default-60"><b>timeout</b> - timeout, default 60</dt>
+<dd>
+
+</dd>
+</dl>
 
 <h2 id="az_network_vnet_create">az_network_vnet_create</h2>
 
@@ -113,6 +147,24 @@
 </dd>
 </dl>
 
+<h3 id="az_network_vnet_get">az_network_vnet_get</h3>
+
+<pre><code>my $res = az_network_vnet_get(resource_group =&gt; &#39;openqa-rg&#39;)</code></pre>
+
+<p>Return the output of az network vnet list</p>
+
+<dl>
+
+<dt id="resource_group---resource-group-name-to-query"><b>resource_group</b> - resource group name to query</dt>
+<dd>
+
+</dd>
+<dt id="query---valid-jmespath-https:-jmespath.org"><b>query</b> - valid jmespath https://jmespath.org/</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h2 id="az_network_nsg_create">az_network_nsg_create</h2>
 
 <pre><code>az_network_nsg_create(
@@ -145,7 +197,7 @@
 
 <dl>
 
-<dt id="resource_group---existing-resource-group-where-to-create-the-NSG1"><b>resource_group</b> - existing resource group where to create the NSG</dt>
+<dt id="resource_group---existing-resource-group-where-to-create-the-NSG-rule"><b>resource_group</b> - existing resource group where to create the NSG rule</dt>
 <dd>
 
 </dd>
@@ -224,7 +276,7 @@
     vnet =&gt; &#39;openqa-vnet&#39;,
     snet =&gt; &#39;openqa-subnet&#39;,
     backend =&gt; &#39;openqa-be&#39;,
-    frontend_ip =&gt; &#39;openqa-feip&#39;,
+    frontend_ip_name =&gt; &#39;openqa-feip&#39;,
     sku =&gt; &#39;Standard&#39;)</code></pre>
 
 <p>Create a load balancer entity. LB is mostly &quot;just&quot; a &quot;group&quot; definition to link back-end and front-end resources (usually an IP)</p>
@@ -253,7 +305,7 @@
 <dd>
 
 </dd>
-<dt id="frontend_ip---name-to-assign-to-created-frontend-ip-will-be-reused-in-az-network-lb-rule-create"><b>frontend_ip</b> - name to assign to created frontend ip, will be reused in &quot;az network lb rule create&quot;</dt>
+<dt id="frontend_ip_name---name-to-assign-to-created-frontend-ip-will-be-reused-in-az-network-lb-rule-create"><b>frontend_ip_name</b> - name to assign to created frontend ip, will be reused in &quot;az network lb rule create&quot;</dt>
 <dd>
 
 </dd>
@@ -281,7 +333,7 @@
 
 <dl>
 
-<dt id="resource_group---existing-resource-group-where-to-create-lb1"><b>resource_group</b> - existing resource group where to create lb</dt>
+<dt id="resource_group---existing-resource-group-where-to-create-lb-probe"><b>resource_group</b> - existing resource group where to create lb probe</dt>
 <dd>
 
 </dd>
@@ -319,7 +371,7 @@
 
 <dl>
 
-<dt id="resource_group---existing-resource-group-where-to-create-lb2"><b>resource_group</b> - existing resource group where to create lb</dt>
+<dt id="resource_group---existing-resource-group-where-to-create-lb-rule"><b>resource_group</b> - existing resource group where to create lb rule</dt>
 <dd>
 
 </dd>
@@ -453,6 +505,77 @@
 </dd>
 </dl>
 
+<h2 id="az_vm_list">az_vm_list</h2>
+
+<pre><code>my $ret = az_vm_list(resource_group =&gt; &#39;openqa-rg&#39;, query =&gt; &#39;[].name&#39;);</code></pre>
+
+<p>Get the info from all existing VMs within a Resource Group Return a decoded json hash according to the provided jmespath query</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group-where-to-search-for-VMs"><b>resource_group</b> - existing resource group where to search for VMs</dt>
+<dd>
+
+</dd>
+<dt id="query---valid-jmespath-https:-jmespath.org1"><b>query</b> - valid jmespath https://jmespath.org/</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_vm_instance_view_get">az_vm_instance_view_get</h2>
+
+<pre><code>my $res = az_vm_instance_view_get(
+    resource_group =&gt; &#39;openqa-rg&#39;,
+    name =&gt; &#39;openqa-vm&#39;)</code></pre>
+
+<p>Get some details of a specific VM</p>
+
+<p>Json output looks like:</p>
+
+<p>[ &quot;PowerState/running&quot;, &quot;VM running&quot; ]</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group-where-to-look-for-a-specific-VM"><b>resource_group</b> - existing resource group where to look for a specific VM</dt>
+<dd>
+
+</dd>
+<dt id="name---name-of-an-existing-virtual-machine"><b>name</b> - name of an existing virtual machine</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_vm_wait_running">az_vm_wait_running</h2>
+
+<pre><code>my $res = az_vm_wait_running(
+    resource_group =&gt; &#39;openqa-rg&#39;,
+    name =&gt; &#39;openqa-vm&#39;,
+    timeout =&gt; 300)</code></pre>
+
+<p>Get the VM state until status looks like:</p>
+
+<p>[ &quot;PowerState/running&quot;, &quot;VM running&quot; ]</p>
+
+<p>or reach timeout. Polling frequency is dynamically calculated based on the timeout</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group-where-to-look-for-a-specific-VM1"><b>resource_group</b> - existing resource group where to look for a specific VM</dt>
+<dd>
+
+</dd>
+<dt id="name---name-of-an-existing-virtual-machine1"><b>name</b> - name of an existing virtual machine</dt>
+<dd>
+
+</dd>
+<dt id="timeout---optional-default-300"><b>timeout</b> - optional, default 300</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h2 id="az_vm_openport">az_vm_openport</h2>
 
 <pre><code>az_vm_openport(
@@ -464,7 +587,7 @@
 
 <dl>
 
-<dt id="resource_group---existing-resource-group-where-to-create-the-Availability-set1"><b>resource_group</b> - existing resource group where to create the Availability set</dt>
+<dt id="resource_group---existing-resource-group-where-to-search-for-a-specific-VM"><b>resource_group</b> - existing resource group where to search for a specific VM</dt>
 <dd>
 
 </dd>
@@ -488,7 +611,7 @@
 
 <dl>
 
-<dt id="resource_group---existing-resource-group-where-to-create-the-Availability-set2"><b>resource_group</b> - existing resource group where to create the Availability set</dt>
+<dt id="resource_group---existing-resource-group-where-to-search-for-a-specific-VM1"><b>resource_group</b> - existing resource group where to search for a specific VM</dt>
 <dd>
 
 </dd>
@@ -516,7 +639,7 @@
 
 <dl>
 
-<dt id="resource_group---existing-resource-group-where-to-create-the-Availability-set3"><b>resource_group</b> - existing resource group where to create the Availability set</dt>
+<dt id="resource_group---existing-resource-group-where-to-search-for-a-specific-NIC"><b>resource_group</b> - existing resource group where to search for a specific NIC</dt>
 <dd>
 
 </dd>
@@ -630,6 +753,186 @@
 
 </dd>
 </dl>
+
+<h2 id="az_vm_diagnostic_log_enable">az_vm_diagnostic_log_enable</h2>
+
+<pre><code>az_vm_diagnostic_log_enable(resource_group =&gt; &#39;openqa-rg&#39;,
+                            storage_account =&gt; &#39;openqasa&#39;,
+                            vm_name =&gt; &#39;openqa-vm&#39;)</code></pre>
+
+<p>Enable diagnostic log for a specific VM</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group-where-to-search-for-a-specific-VM2"><b>resource_group</b> - existing resource group where to search for a specific VM</dt>
+<dd>
+
+</dd>
+<dt id="storage_account---existing-storage-account"><b>storage_account</b> - existing storage account</dt>
+<dd>
+
+</dd>
+<dt id="vm_name---existing-VM-name"><b>vm_name</b> - existing VM name</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_vm_diagnostic_log_get">az_vm_diagnostic_log_get</h2>
+
+<pre><code>my $list_of_logs = az_vm_diagnostic_log_get(resource_group =&gt; &#39;openqa-rg&#39;)</code></pre>
+
+<p>Call `az vm boot-diagnostics json` for each running VM in the resource group associated to this openQA job</p>
+
+<p>Return a list of diagnostic file paths on the JumpHost</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group-where-to-search-for-a-specific-VM3"><b>resource_group</b> - existing resource group where to search for a specific VM</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_storage_account_create">az_storage_account_create</h2>
+
+<pre><code>az_storage_account_create(
+    resource_group =&gt; &#39;openqa-rg&#39;,
+    region =&gt; &#39;northeurope&#39;
+    name =&gt; &#39;openqasa&#39;)</code></pre>
+
+<p>Create a storage account</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group-where-to-create-the-storage-account"><b>resource_group</b> - existing resource group where to create the storage account</dt>
+<dd>
+
+</dd>
+<dt id="region---Azure-region2"><b>region</b> - Azure region</dt>
+<dd>
+
+</dd>
+<dt id="name---name-for-the-storage-account-to-be-created.-Storage-account-name-must-be-between-3-and-24-characters-in-length-and-use-numbers-and-lower-case-letters-only"><b>name</b> - name for the storage account to be created. Storage account name must be between 3 and 24 characters in length and use numbers and lower-case letters only.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_network_peering_create">az_network_peering_create</h2>
+
+<pre><code>az_network_peering_create(
+    name =&gt; &#39;openqa-fromVNET-toVNET&#39;,
+    source_rg =&gt; &#39;openqa-rg&#39;,
+    source_vnet =&gt; &#39;openqa-this-vnet&#39;,
+    target_rg =&gt; &#39;openqa-rg&#39;,
+    target_vnet =&gt; &#39;openqa-this-vnet&#39;)</code></pre>
+
+<p>Create network peering</p>
+
+<dl>
+
+<dt id="name---NAME-for-the-network-peering-to-create"><b>name</b> - NAME for the network peering to create</dt>
+<dd>
+
+</dd>
+<dt id="source_rg---existing-resource-group-that-contain-vnet-source-of-the-peering"><b>source_rg</b> - existing resource group that contain vnet source of the peering</dt>
+<dd>
+
+</dd>
+<dt id="source_vnet---existing-vnet-in-source_rg-used-as-source-of-the-peering"><b>source_vnet</b> - existing vnet in source_rg, used as source of the peering</dt>
+<dd>
+
+</dd>
+<dt id="target_rg---existing-resource-group-that-contain-vnet-target-of-the-peering"><b>target_rg</b> - existing resource group that contain vnet target of the peering</dt>
+<dd>
+
+</dd>
+<dt id="target_vnet---existing-vnet-in-target_rg-used-as-target-of-the-peering"><b>target_vnet</b> - existing vnet in target_rg, used as target of the peering</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_network_peering_list">az_network_peering_list</h2>
+
+<pre><code>my $res = az_network_peering_list(
+    resource_group =&gt; &#39;openqa-rg&#39;,
+    vnet =&gt; &#39;openqa-this-vnet&#39;)</code></pre>
+
+<p>Return HASH representing existing net peering</p>
+
+<dl>
+
+<dt id="resource_group---existing-resource-group-that-contain-vnet-source-of-the-peering"><b>resource_group</b> - existing resource group that contain vnet source of the peering</dt>
+<dd>
+
+</dd>
+<dt id="vnet---existing-vnet-in-resource_group-used-as-source-of-the-peering"><b>vnet</b> - existing vnet in resource_group, used as source of the peering</dt>
+<dd>
+
+</dd>
+<dt id="query---valid-jmespath-https:-jmespath.org2"><b>query</b> - valid jmespath https://jmespath.org/</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_network_peering_delete">az_network_peering_delete</h2>
+
+<pre><code>az_network_peering_delete(
+    name =&gt; &#39;openqa-fromVNET-toVNET&#39;,
+    resource_group =&gt; &#39;openqa-rg&#39;,
+    vnet =&gt; &#39;openqa-this-vnet&#39;)</code></pre>
+
+<p>Delete a specific network peering</p>
+
+<dl>
+
+<dt id="name---name-of-the-existing-the-network-peering-to-delete"><b>name</b> - name of the existing the network peering to delete</dt>
+<dd>
+
+</dd>
+<dt id="resource_group---existing-resource-group-that-contain-vnet-source-of-the-peering1"><b>resource_group</b> - existing resource group that contain vnet source of the peering</dt>
+<dd>
+
+</dd>
+<dt id="vnet---existing-vnet-in-resource_group-used-as-source-of-the-peering1"><b>vnet</b> - existing vnet in resource_group, used as source of the peering</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="az_disk_create">az_disk_create</h2>
+
+<pre><code>az_disk_create(resource_group=&gt;$resource_group, name=&gt;$name
+    [, size_gb=&gt;60, source=$source, tags=&quot;tag1=value1 tag2=value2&quot;]);</code></pre>
+
+<p>Creates new disk device either by specifying <b>size_gb</b> or by cloning another disk device using argument <b>source</b>. Arguments <b>size_gb</b> and <b>source</b> are mutually exclusive.</p>
+
+<p><b>name</b> New disk name</p>
+
+<p><b>resource_group</b> Existing resource group name.</p>
+
+<p><b>source</b> Create disk by cloning snapshot</p>
+
+<p><b>size_gb</b> New disk size</p>
+
+<p><b>tags</b> Additional tags to add to the disk resource. key=value pairs must be separated by empty space. Example: az_disk_create(tags=&gt;&quot;some_tag=some_value another_tag=another_value&quot;)</p>
+
+<h2 id="az_resource_delete">az_resource_delete</h2>
+
+<pre><code>az_resource_delete(resource_group=&gt;$resource_group, name=&gt;$name);</code></pre>
+
+<p>Deletes resource from specified resource group. Single resource can be deleted by specifying <b>name</b> or list of resource IDs delimited by empty space using argument <b>ids</b>. Arguments <b>name</b> and <b>ids</b> are mutually exclusive.</p>
+
+<p><b>resource_group</b> Existing resource group name.</p>
+
+<p><b>name</b> Name of the resource to delete</p>
+
+<p><b>ids</b> list of resource IDs to delete</p>
+
+<p><b>timeout</b> Timeout for az command. Default: 60</p>
 
 
 </body>

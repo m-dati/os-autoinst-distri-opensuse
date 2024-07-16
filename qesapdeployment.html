@@ -75,6 +75,7 @@
           <li><a href="#qesap_az_vnet_peering">qesap_az_vnet_peering</a></li>
           <li><a href="#qesap_az_simple_peering_delete">qesap_az_simple_peering_delete</a></li>
           <li><a href="#qesap_az_vnet_peering_delete">qesap_az_vnet_peering_delete</a></li>
+          <li><a href="#qesap_az_peering_list_cmd">qesap_az_peering_list_cmd</a></li>
           <li><a href="#qesap_az_get_peering_name">qesap_az_get_peering_name</a></li>
           <li><a href="#qesap_az_get_active_peerings">qesap_az_get_active_peerings</a></li>
         </ul>
@@ -87,9 +88,11 @@
       <li><a href="#qesap_az_get_tenant_id">qesap_az_get_tenant_id</a></li>
       <li><a href="#qesap_az_validate_uuid_pattern">qesap_az_validate_uuid_pattern</a></li>
       <li><a href="#qesap_az_create_sas_token">qesap_az_create_sas_token</a></li>
+      <li><a href="#qesap_az_list_container_files">qesap_az_list_container_files</a></li>
       <li><a href="#qesap_az_diagnostic_log">qesap_az_diagnostic_log</a></li>
       <li><a href="#qesap_terraform_clean_up_retry">qesap_terraform_clean_up_retry</a></li>
       <li><a href="#qesap_terrafom_ansible_deploy_retry">qesap_terrafom_ansible_deploy_retry</a></li>
+      <li><a href="#qesap_ansible_error_detection">qesap_ansible_error_detection</a></li>
     </ul>
   </li>
 </ul><h1>lib/qesapdeployment.pm</h1>
@@ -213,12 +216,10 @@ Example:
 
 <h3 id="qesap_execute">qesap_execute</h3>
 
-<pre><code>qesap_execute(cmd =&gt; $qesap_script_cmd [, verbose =&gt; 1, cmd_options =&gt; $cmd_options] );
-cmd_options - allows to append additional qesap.py commands arguments
-like &quot;qesap.py terraform -d&quot;
-    Example:
-    qesap_execute(cmd =&gt; &#39;terraform&#39;, cmd_options =&gt; &#39;-d&#39;) will result in:
-    qesap.py terraform -d
+<pre><code>qesap_execute(
+    cmd =&gt; &#39;terraform&#39;,
+    logname =&gt; &#39;terraform_destroy.log.txt&#39;
+    [, verbose =&gt; 1, cmd_options =&gt; $cmd_options] );
 
 Execute qesap glue script commands. Check project documentation for available options:
 https://github.com/SUSE/qe-sap-deployment
@@ -227,6 +228,10 @@ Test only returns execution result, failure has to be handled by calling method.
 <dl>
 
 <dt id="CMD---qesap.py-subcommand-to-run"><b>CMD</b> - qesap.py subcommand to run</dt>
+<dd>
+
+</dd>
+<dt id="LOGNAME---filename-of-the-log-file"><b>LOGNAME</b> - filename of the log file.</dt>
 <dd>
 
 </dd>
@@ -242,20 +247,15 @@ Test only returns execution result, failure has to be handled by calling method.
 <dd>
 
 </dd>
-<dt id="LOGNAME---filename-of-the-log-file.-This-argument-is-optional-if-not-specified-the-log-filename-is-internally-calculated-using-content-from-CMD-and-CMD_OPTIONS"><b>LOGNAME</b> - filename of the log file. This argument is optional, if not specified the log filename is internally calculated using content from CMD and CMD_OPTIONS.</dt>
-<dd>
-
-</dd>
 </dl>
 
 <h3 id="qesap_execute_conditional_retry">qesap_execute_conditional_retry</h3>
 
-<pre><code>qesap_execute(cmd =&gt; $qesap_script_cmd [, verbose =&gt; 1, cmd_options =&gt; $cmd_options] );
-cmd_options - allows to append additional qesap.py commands arguments
-like &quot;qesap.py terraform -d&quot;
-    Example:
-    qesap_execute(cmd =&gt; &#39;terraform&#39;, cmd_options =&gt; &#39;-d&#39;) will result in:
-    qesap.py terraform -d
+<pre><code>qesap_execute_conditional_retry(
+cmd =&gt; $qesap_script_cmd,
+error_string =&gt; &#39;Fatal:&#39;,
+logname =&gt; &#39;somefile.txt&#39;
+[, verbose =&gt; 1, cmd_options =&gt; $cmd_options] );
 
 Execute qesap glue script commands. Check project documentation for available options:
 https://github.com/SUSE/qe-sap-deployment
@@ -279,7 +279,7 @@ Test only returns execution result, failure has to be handled by calling method.
 <dd>
 
 </dd>
-<dt id="LOGNAME---filename-of-the-log-file.-This-argument-is-optional-if-not-specified-the-log-filename-is-internally-calculated-using-content-from-CMD-and-CMD_OPTIONS1"><b>LOGNAME</b> - filename of the log file. This argument is optional, if not specified the log filename is internally calculated using content from CMD and CMD_OPTIONS.</dt>
+<dt id="LOGNAME---filename-of-the-log-file1"><b>LOGNAME</b> - filename of the log file.</dt>
 <dd>
 
 </dd>
@@ -996,6 +996,25 @@ the two provided deployments.</code></pre>
 </dd>
 </dl>
 
+<h3 id="qesap_az_peering_list_cmd">qesap_az_peering_list_cmd</h3>
+
+<pre><code>Compose the azure peering list command, using the provided:
+- resource group, and
+- vnet
+Returns the command string to be run.</code></pre>
+
+<dl>
+
+<dt id="RESOURCE_GROUP---resource-group-connected-to-the-peering"><b>RESOURCE_GROUP</b> - resource group connected to the peering</dt>
+<dd>
+
+</dd>
+<dt id="VNET---vnet-connected-to-the-peering"><b>VNET</b> - vnet connected to the peering</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h3 id="qesap_az_get_peering_name">qesap_az_get_peering_name</h3>
 
 <pre><code>Search for all network peering related to both:
@@ -1006,7 +1025,7 @@ empty string if a peering doesn&#39;t exist</code></pre>
 
 <dl>
 
-<dt id="RESOURCE_GROUP---resource-group-connected-to-the-peering"><b>RESOURCE_GROUP</b> - resource group connected to the peering</dt>
+<dt id="RESOURCE_GROUP---resource-group-connected-to-the-peering1"><b>RESOURCE_GROUP</b> - resource group connected to the peering</dt>
 <dd>
 
 </dd>
@@ -1141,6 +1160,34 @@ returns uuid (true) on match, 0 (false) on mismatch.</code></pre>
 </dd>
 </dl>
 
+<h2 id="qesap_az_list_container_files">qesap_az_list_container_files</h2>
+
+<p>Returns a list of the files that exist inside a given path in a given container in Azure storage.</p>
+
+<p>Generated command looks like this:</p>
+
+<p>az storage blob list --account-name &lt;account_name&gt; --container-name &lt;container_name&gt; --sas-token &quot;&lt;my_token&gt;&quot; --prefix &lt;path_inside_container&gt; --query &quot;[].{name:name}&quot; --output tsv</p>
+
+<dl>
+
+<dt id="STORAGE---Storage-account-name-used-fur-the---account-name-argument-in-az-commands1"><b>STORAGE</b> - Storage account name used fur the --account-name argument in az commands</dt>
+<dd>
+
+</dd>
+<dt id="CONTAINER---container-name-within-the-storage-account1"><b>CONTAINER</b> - container name within the storage account</dt>
+<dd>
+
+</dd>
+<dt id="TOKEN---name-of-the-SAS-token-to-access-the-account-needs-to-have-l-permission"><b>TOKEN</b> - name of the SAS token to access the account (needs to have l permission)</dt>
+<dd>
+
+</dd>
+<dt id="PREFIX---the-local-path-inside-the-container-to-list-file-inside-a-folder-named-dir-this-would-be-dir"><b>PREFIX</b> - the local path inside the container (to list file inside a folder named &#39;dir&#39;, this would be &#39;dir&#39;)</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h2 id="qesap_az_diagnostic_log">qesap_az_diagnostic_log</h2>
 
 <p>Call `az vm boot-diagnostics json` for each running VM in the resource group associated to this openQA job</p>
@@ -1167,6 +1214,30 @@ Return 1: something went wrong or we do not know what to do with the failure</co
 <dl>
 
 <dt id="ERROR_LOG---error-log-filename"><b>ERROR_LOG</b> - error log filename</dt>
+<dd>
+
+</dd>
+<dt id="PROVIDER---cloud-provider-name-as-from-PUBLIC_CLOUD_PROVIDER-setting"><b>PROVIDER</b> - cloud provider name as from PUBLIC_CLOUD_PROVIDER setting</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="qesap_ansible_error_detection">qesap_ansible_error_detection</h2>
+
+<pre><code>qesap_ansible_error_detection( error_log=&gt;$error_log )
+
+Inspect the provided Ansible log and search for known issue in the log
+Also provide a nice record_info to summarize the error
+Return:
+ - 0: no errors
+ - 1: unknown generic error
+ - 2: reboot timeout
+ - 3: no sudo password</code></pre>
+
+<dl>
+
+<dt id="ERROR_LOG---error-log-filename1"><b>ERROR_LOG</b> - error log filename</dt>
 <dd>
 
 </dd>

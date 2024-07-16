@@ -15,9 +15,30 @@
   <li><a href="#SYNOPSIS">SYNOPSIS</a>
     <ul>
       <li><a href="#ipaddr2_azure_resource_group">ipaddr2_azure_resource_group</a></li>
+      <li><a href="#ipaddr2_azure_storage_account">ipaddr2_azure_storage_account</a></li>
       <li><a href="#ipaddr2_azure_deployment">ipaddr2_azure_deployment</a></li>
-      <li><a href="#ipaddr2_ssh_cmd">ipaddr2_ssh_cmd</a></li>
+      <li><a href="#ipaddr2_bastion_pubip">ipaddr2_bastion_pubip</a></li>
+      <li><a href="#ipaddr2_bastion_ssh_addr">ipaddr2_bastion_ssh_addr</a></li>
+      <li><a href="#ipaddr2_bastion_key_accept">ipaddr2_bastion_key_accept</a></li>
+      <li><a href="#ipaddr2_internal_key_accept">ipaddr2_internal_key_accept</a></li>
+      <li><a href="#ipaddr2_internal_key_gen">ipaddr2_internal_key_gen</a></li>
+      <li><a href="#ipaddr2_deployment_sanity">ipaddr2_deployment_sanity</a></li>
+      <li><a href="#ipaddr2_os_sanity">ipaddr2_os_sanity</a></li>
+      <li><a href="#ipaddr2_os_connectivity_sanity">ipaddr2_os_connectivity_sanity</a></li>
+      <li><a href="#ipaddr2_os_network_sanity">ipaddr2_os_network_sanity</a></li>
+      <li><a href="#ipaddr2_os_ssh_sanity">ipaddr2_os_ssh_sanity</a></li>
+      <li><a href="#ipaddr2_ssh_bastion_assert_script_run">ipaddr2_ssh_bastion_assert_script_run</a></li>
+      <li><a href="#ipaddr2_ssh_bastion_script_run">ipaddr2_ssh_bastion_script_run</a></li>
+      <li><a href="#ipaddr2_ssh_bastion_script_output">ipaddr2_ssh_bastion_script_output</a></li>
+      <li><a href="#ipaddr2_ssh_internal_cmd">ipaddr2_ssh_internal_cmd</a></li>
+      <li><a href="#ipaddr2_ssh_internal">ipaddr2_ssh_internal</a></li>
+      <li><a href="#ipaddr2_ssh_internal_output">ipaddr2_ssh_internal_output</a></li>
+      <li><a href="#ipaddr2_create_cluster">ipaddr2_create_cluster</a></li>
+      <li><a href="#ipaddr2_deployment_logs">ipaddr2_deployment_logs</a></li>
       <li><a href="#ipaddr2_destroy">ipaddr2_destroy</a></li>
+      <li><a href="#ipaddr2_get_internal_vm_name">ipaddr2_get_internal_vm_name</a></li>
+      <li><a href="#ipaddr2_get_internal_vm_private_ip">ipaddr2_get_internal_vm_private_ip</a></li>
+      <li><a href="#ipaddr2_get_worker_tmp_for_internal_vm">ipaddr2_get_worker_tmp_for_internal_vm</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap/ipaddr2.pm</h1>
@@ -31,6 +52,12 @@
 <pre><code>my $rg = ipaddr2_azure_resource_group();</code></pre>
 
 <p>Get the Azure resource group name for this test</p>
+
+<h2 id="ipaddr2_azure_storage_account">ipaddr2_azure_storage_account</h2>
+
+<pre><code>my $storage account = ipaddr2_azure_storage_account();</code></pre>
+
+<p>Get a unique storage account name. Not including the jobId result in error like: The storage account named ip2tstorageaccount already exists under the subscription</p>
 
 <h2 id="ipaddr2_azure_deployment">ipaddr2_azure_deployment</h2>
 
@@ -50,19 +77,332 @@
 <dd>
 
 </dd>
+<dt id="diagnostic---enable-diagnostic-features-if-1"><b>diagnostic</b> - enable diagnostic features if 1</dt>
+<dd>
+
+</dd>
 </dl>
 
-<h2 id="ipaddr2_ssh_cmd">ipaddr2_ssh_cmd</h2>
+<h2 id="ipaddr2_bastion_pubip">ipaddr2_bastion_pubip</h2>
 
-<pre><code>script_run(ipaddr2_ssh_cmd() . &#39; whoami&#39;);</code></pre>
+<pre><code>my $bastion_ip = ipaddr2_bastion_pubip();</code></pre>
 
-<p>Create ssh command that target the only VM in the deployment that has public IP.</p>
+<p>Get the only public IP in the deployment associated to the VM used as bastion.</p>
+
+<h2 id="ipaddr2_bastion_ssh_addr">ipaddr2_bastion_ssh_addr</h2>
+
+<pre><code>script_run(join(&#39; &#39;, &#39;ssh&#39;, ipaddr2_bastion_ssh_addr(), &#39;whoami&#39;);</code></pre>
+
+<p>Help to create ssh command that target the only VM in the deployment that has public IP.</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_bastion_key_accept">ipaddr2_bastion_key_accept</h2>
+
+<pre><code>ipaddr2_bastion_key_accept()</code></pre>
+
+<p>For the worker to accept the ssh key of the bastion</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it1"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_internal_key_accept">ipaddr2_internal_key_accept</h2>
+
+<pre><code>ipaddr2_internal_key_accept()</code></pre>
+
+<p>For the worker to accept the ssh key of the internal VMs</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it2"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_internal_key_gen">ipaddr2_internal_key_gen</h2>
+
+<pre><code>ipaddr2_internal_key_gen()</code></pre>
+
+<p>Create, on the /tmp folder of the Worker, two ssh key set. One ssk yey pair for each internal VM Then upload in each internal VM the ssh key pair using scp in Proxy mode</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it3"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_deployment_sanity">ipaddr2_deployment_sanity</h2>
+
+<pre><code>ipaddr2_deployment_sanity()</code></pre>
+
+<p>Run some checks on the existing deployment using the az command line. die in case of failure</p>
+
+<h2 id="ipaddr2_os_sanity">ipaddr2_os_sanity</h2>
+
+<pre><code>ipaddr2_os_sanity()</code></pre>
+
+<p>Run some OS level checks on the various VMs composing the deployment. die in case of failure. Tests are targeting all the VM. Tests are independent by the cluster status.</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it4"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_os_connectivity_sanity">ipaddr2_os_connectivity_sanity</h2>
+
+<pre><code>ipaddr2_os_connectivity_sanity()</code></pre>
+
+<p>Run some OS level checks about internal connectivity. die in case of failure</p>
+
+<p>- bastion has to be able to ping the internal VM using the internal private IP - bastion has to be able to ping the internal VM using the internal VM hostname</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it5"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_os_network_sanity">ipaddr2_os_network_sanity</h2>
+
+<pre><code>ipaddr2_os_network_sanity()</code></pre>
+
+<p>Check that private IP are in the network configuration on the internal VMs</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it6"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_os_ssh_sanity">ipaddr2_os_ssh_sanity</h2>
+
+<pre><code>ipaddr2_os_ssh_sanity()</code></pre>
+
+<p>Run some OS level checks on the various VMs ssh keys and configs. die in case of failure</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it7"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_ssh_bastion_assert_script_run">ipaddr2_ssh_bastion_assert_script_run</h2>
+
+<pre><code>ipaddr2_ssh_bastion_assert_script_run(
+    bastion_ip =&gt; &#39;1.2.3.4&#39;,
+    cmd =&gt; &#39;whoami&#39;);</code></pre>
+
+<p>run a command on the bastion using assert_script_run</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it8"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+<dt id="cmd---command-to-run-there"><b>cmd</b> - command to run there</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_ssh_bastion_script_run">ipaddr2_ssh_bastion_script_run</h2>
+
+<pre><code>my $ret = ipaddr2_ssh_bastion_script_run(
+    bastion_ip =&gt; &#39;1.2.3.4&#39;,
+    cmd =&gt; &#39;whoami&#39;);</code></pre>
+
+<p>run a command on the bastion using script_run</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it9"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+<dt id="cmd---command-to-run-there1"><b>cmd</b> - command to run there</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_ssh_bastion_script_output">ipaddr2_ssh_bastion_script_output</h2>
+
+<pre><code>my $ret = ipaddr2_ssh_bastion_script_output(
+    bastion_ip =&gt; &#39;1.2.3.4&#39;,
+    cmd =&gt; &#39;whoami&#39;);</code></pre>
+
+<p>run a command on the bastion using script_output</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it10"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+<dt id="cmd---command-to-run-there2"><b>cmd</b> - command to run there</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_ssh_internal_cmd">ipaddr2_ssh_internal_cmd</h2>
+
+<pre><code>script_run(ipaddr2_ssh_internal_cmd(
+    id =&gt; 2,
+    bastion_ip =&gt; &#39;1.2.3.4&#39;,
+    cmd =&gt; &#39;whoami&#39;));</code></pre>
+
+<p>Compose an ssh command. Command is composed to be executed on one of the two internal VM. Command will use -J option to use the bastion as a proxy. This function does not really execute any command, it only return a string. Other functions can use result command string as input for various testapi functions, like assert_script_run or script_output.</p>
+
+<dl>
+
+<dt id="id---ID-of-the-internal-VM.-Used-to-compose-its-name-and-as-address-for-ssh"><b>id</b> - ID of the internal VM. Used to compose its name and as address for ssh.</dt>
+<dd>
+
+</dd>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it11"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+<dt id="cmd---Command-to-be-run-on-the-internal-VM"><b>cmd</b> - Command to be run on the internal VM.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_ssh_internal">ipaddr2_ssh_internal</h2>
+
+<pre><code>ipaddr2_ssh_internal(
+    id =&gt; 2,
+    bastion_ip =&gt; &#39;1.2.3.4&#39;,
+    cmd =&gt; &#39;whoami&#39;);</code></pre>
+
+<p>run a command on one of the two internal VM through the bastion using the assert_script_run API</p>
+
+<dl>
+
+<dt id="id---ID-of-the-internal-VM.-Used-to-compose-its-name-and-as-address-for-ssh1"><b>id</b> - ID of the internal VM. Used to compose its name and as address for ssh.</dt>
+<dd>
+
+</dd>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it12"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+<dt id="cmd---Command-to-be-run-on-the-internal-VM1"><b>cmd</b> - Command to be run on the internal VM.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_ssh_internal_output">ipaddr2_ssh_internal_output</h2>
+
+<pre><code>ipaddr2_ssh_internal_output(
+    id =&gt; 2,
+    bastion_ip =&gt; &#39;1.2.3.4&#39;,
+    cmd =&gt; &#39;whoami&#39;);</code></pre>
+
+<p>Runs $cmd through the bastion on one of the two internal VMs using script_output. Return the command output.</p>
+
+<dl>
+
+<dt id="id---ID-of-the-internal-VM.-Used-to-compose-its-name-and-as-address-for-ssh2"><b>id</b> - ID of the internal VM. Used to compose its name and as address for ssh.</dt>
+<dd>
+
+</dd>
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it13"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+<dt id="cmd---Command-to-be-run-on-the-internal-VM2"><b>cmd</b> - Command to be run on the internal VM.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_create_cluster">ipaddr2_create_cluster</h2>
+
+<pre><code>ipaddr2_create_cluster();</code></pre>
+
+<p>Initialize and configure the Pacemaker cluster on the two internal nodes</p>
+
+<dl>
+
+<dt id="bastion_ip---Public-IP-address-of-the-bastion.-Calculated-if-not-provided.-Providing-it-as-an-argument-is-recommended-in-order-to-avoid-having-to-query-Azure-to-get-it14"><b>bastion_ip</b> - Public IP address of the bastion. Calculated if not provided. Providing it as an argument is recommended in order to avoid having to query Azure to get it.</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_deployment_logs">ipaddr2_deployment_logs</h2>
+
+<pre><code>ipaddr2_deployment_logs()</code></pre>
+
+<p>Collect logs from the cloud infrastructure</p>
 
 <h2 id="ipaddr2_destroy">ipaddr2_destroy</h2>
 
 <pre><code>ipaddr2_destroy();</code></pre>
 
 <p>Destroy the deployment by deleting the resource group</p>
+
+<h2 id="ipaddr2_get_internal_vm_name">ipaddr2_get_internal_vm_name</h2>
+
+<pre><code>my $vm_name = ipaddr2_get_internal_vm_name(id =&gt; 42);</code></pre>
+
+<p>compose and return a string for the vm name</p>
+
+<dl>
+
+<dt id="id---VM-id-number"><b>id</b> - VM id number</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_get_internal_vm_private_ip">ipaddr2_get_internal_vm_private_ip</h2>
+
+<pre><code>my $private_ip = ipaddr2_get_internal_vm_private_ip(id =&gt; 42);</code></pre>
+
+<p>compose and return a string representing the VM private IP</p>
+
+<dl>
+
+<dt id="id---VM-id-number1"><b>id</b> - VM id number</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="ipaddr2_get_worker_tmp_for_internal_vm">ipaddr2_get_worker_tmp_for_internal_vm</h2>
+
+<pre><code>my $vm_tmp = ipaddr2_get_worker_tmp_for_internal_vm(42);</code></pre>
+
+<p>Return a path in /tmp of the worker used to store files associated two one of the internal VM</p>
 
 
 </body>

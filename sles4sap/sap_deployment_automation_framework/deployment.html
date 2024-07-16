@@ -2,23 +2,18 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>lib/sles4sap/sdaf_library.pm</title>
+<title>lib/sles4sap/sap_deployment_automation_framework/deployment.pm</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rel='stylesheet' href='../style.css' />
+<link rel='stylesheet' href='../../style.css' />
 </head>
 
 <body>
 
 
 
-<ul id="index"><li><a href="../index.html"><i>&lt;= Back to file list</i></a></li>
+<ul id="index"><li><a href="../../index.html"><i>&lt;= Back to file list</i></a></li>
   <li><a href="#SYNOPSIS">SYNOPSIS</a>
     <ul>
-      <li><a href="#homedir">homedir</a></li>
-      <li><a href="#deployment_dir">deployment_dir</a></li>
-      <li><a href="#log_dir">log_dir</a></li>
-      <li><a href="#sdaf_scripts_dir">sdaf_scripts_dir</a></li>
-      <li><a href="#env_variable_file">env_variable_file</a></li>
       <li><a href="#log_command_output">log_command_output</a></li>
       <li><a href="#az_login">az_login</a></li>
       <li><a href="#create_sdaf_os_var_file">create_sdaf_os_var_file</a></li>
@@ -26,23 +21,22 @@
       <li><a href="#get_os_variable">get_os_variable</a></li>
       <li><a href="#set_common_sdaf_os_env">set_common_sdaf_os_env</a></li>
       <li><a href="#load_os_env_variables">load_os_env_variables</a></li>
-      <li><a href="#sdaf_get_deployer_ip">sdaf_get_deployer_ip</a></li>
       <li><a href="#sdaf_prepare_ssh_keys">sdaf_prepare_ssh_keys</a></li>
       <li><a href="#az_get_ssh_key">az_get_ssh_key</a></li>
       <li><a href="#serial_console_diag_banner">serial_console_diag_banner</a></li>
-      <li><a href="#get_tfvars_path">get_tfvars_path</a></li>
       <li><a href="#prepare_tfvars_file">prepare_tfvars_file</a></li>
       <li><a href="#replace_tfvars_variables">replace_tfvars_variables</a></li>
       <li><a href="#sdaf_execute_deployment">sdaf_execute_deployment</a></li>
       <li><a href="#get_sdaf_deployment_command">get_sdaf_deployment_command</a></li>
-      <li><a href="#prepare_sdaf_repo">prepare_sdaf_repo</a></li>
-      <li><a href="#generate_resource_group_name">generate_resource_group_name</a></li>
+      <li><a href="#prepare_sdaf_project">prepare_sdaf_project</a></li>
       <li><a href="#resource_group_exists">resource_group_exists</a></li>
       <li><a href="#sdaf_execute_remover">sdaf_execute_remover</a></li>
       <li><a href="#sdaf_cleanup">sdaf_cleanup</a></li>
+      <li><a href="#sdaf_execute_playbook">sdaf_execute_playbook</a></li>
+      <li><a href="#sdaf_ansible_verbosity_level">sdaf_ansible_verbosity_level</a></li>
     </ul>
   </li>
-</ul><h1>lib/sles4sap/sdaf_library.pm</h1>
+</ul><h1>lib/sles4sap/sap_deployment_automation_framework/deployment.pm</h1>
 
 <h1 id="SYNOPSIS">SYNOPSIS</h1>
 
@@ -65,40 +59,6 @@
 <p><b>Workload zone</b>: Resource group that provides services similar to support server.</p>
 
 <p><b>SAP Systems</b>: Resource group containing SAP SUTs and related resources.</p>
-
-<h2 id="homedir">homedir</h2>
-
-<pre><code>homedir();</code></pre>
-
-<p>Returns home directory path for current user from env variable $HOME.</p>
-
-<h2 id="deployment_dir">deployment_dir</h2>
-
-<pre><code>deployment_dir([create=&gt;1]);</code></pre>
-
-<p><b>create</b>: Create directory if it does not exist.</p>
-
-<p>Returns deployment directory path with job ID appended as unique identifier. Optionally it can create directory if it does not exists.</p>
-
-<h2 id="log_dir">log_dir</h2>
-
-<pre><code>log_dir([create=&gt;1]);</code></pre>
-
-<p><b>create</b>: Create directory if it does not exist.</p>
-
-<p>Returns logging directory path with job ID appended as unique identifier. Optionally creates the directory.</p>
-
-<h2 id="sdaf_scripts_dir">sdaf_scripts_dir</h2>
-
-<pre><code>sdaf_scripts_dir();</code></pre>
-
-<p>Returns directory containing SDAF scripts.</p>
-
-<h2 id="env_variable_file">env_variable_file</h2>
-
-<pre><code>env_variable_file();</code></pre>
-
-<p>Returns full path to a file containing all required SDAF OS env variables. Sourcing this file is essential for running SDAF.</p>
 
 <h2 id="log_command_output">log_command_output</h2>
 
@@ -167,7 +127,7 @@ tee - writes output also into the log file</code></pre>
     [, env_code=&gt;$env_code]
     [, deployer_vnet_code=&gt;$deployer_vnet_code]
     [, workload_vnet_code=&gt;$workload_vnet_code]
-    [, region_code=&gt;$region_code]
+    [, sdaf_region_code=&gt;$sdaf_region_code]
     [, sap_sid=&gt;$sap_sid]
     [, sdaf_tfstate_storage_account=$sdaf_tfstate_storage_account]
     [, sdaf_key_vault=&gt;$sdaf_key_vault]
@@ -181,7 +141,7 @@ tee - writes output also into the log file</code></pre>
 
 <p><b>workload_vnet_code</b>: Virtual network code for workload zone. Default: &#39;SDAF_WORKLOAD_VNET_CODE&#39;</p>
 
-<p><b>region_code</b>: SDAF internal code for azure region. Default: &#39;SDAF_REGION_CODE&#39;</p>
+<p><b>sdaf_region_code</b>: SDAF internal code for azure region. Default: &#39;PUBLIC_CLOUD_REGION&#39; - converted to SDAF format</p>
 
 <p><b>sap_sid</b>: SAP system ID. Default: &#39;SAP_SID&#39;</p>
 
@@ -196,14 +156,6 @@ tee - writes output also into the log file</code></pre>
 <pre><code>load_os_env_variables();</code></pre>
 
 <p>Sources file containing OS env variables required for executing SDAF. Currently deployer VM is a permanent installation with all tests using it. Therefore using .bashrc file for storing variables is not an option since tests would constantly overwrite variables between each other.</p>
-
-<h2 id="sdaf_get_deployer_ip">sdaf_get_deployer_ip</h2>
-
-<pre><code>sdaf_get_deployer_ip(deployer_resource_group=&gt;$deployer_resource_group);</code></pre>
-
-<p><b>deployer_resource_group</b>: Deployer key vault name</p>
-
-<p>Retrieves public IP of the deployer VM.</p>
 
 <h2 id="sdaf_prepare_ssh_keys">sdaf_prepare_ssh_keys</h2>
 
@@ -233,27 +185,6 @@ tee - writes output also into the log file</code></pre>
 
 <p>Prints a simple line in serial console that highlights a point in output to make it more readable. Can be used for example to mark start and end of a function or a point in test so it is easier to find while debugging.</p>
 
-<h2 id="get_tfvars_path">get_tfvars_path</h2>
-
-<pre><code>get_tfvars_path(
-    deployment_type=&gt;$deployment_type,
-    env_code=&gt;$env_code,
-    region_code=&gt;$region_code,
-    [vnet_code=&gt;$vnet_code,
-    sap_sid=&gt;$sap_sid]);</code></pre>
-
-<p>Returns full tfvars filepath respective to deployment type.</p>
-
-<p><b>deployment_type</b>: Type of the deployment (workload_zone, sap_system, library... etc)</p>
-
-<p><b>env_code</b>: SDAF parameter for environment code (for our purpose we can use &#39;LAB&#39;)</p>
-
-<p><b>region_code</b>: SDAF parameter to choose PC region. Note SDAF is using internal abbreviations (SECE = swedencentral)</p>
-
-<p><b>vnet_code</b>: SDAF parameter for virtual network code. Library and deployer use different vnet than SUT env</p>
-
-<p><b>sap_sid</b>: SDAF parameter for sap system ID</p>
-
 <h2 id="prepare_tfvars_file">prepare_tfvars_file</h2>
 
 <pre><code>prepare_tfvars_file(deployment_type=&gt;$deployment_type);</code></pre>
@@ -278,6 +209,8 @@ tee - writes output also into the log file</code></pre>
 
 <p><b>timeout</b>: Execution timeout. Default: 1800s.</p>
 
+<p><b>retries</b>: Number of attempts to execute deployment in case of failure. Default: 3</p>
+
 <p>Executes SDAF deployment according to the type specified. Croaks with unsupported deployment type, dies upon command failure. <a href="https://learn.microsoft.com/en-us/azure/sap/automation/deploy-workload-zone?tabs=linux#deploy-the-sap-workload-zone">https://learn.microsoft.com/en-us/azure/sap/automation/deploy-workload-zone?tabs=linux#deploy-the-sap-workload-zone</a> <a href="https://learn.microsoft.com/en-us/azure/sap/automation/tutorial#deploy-the-sap-system-infrastructure">https://learn.microsoft.com/en-us/azure/sap/automation/tutorial#deploy-the-sap-system-infrastructure</a></p>
 
 <h2 id="get_sdaf_deployment_command">get_sdaf_deployment_command</h2>
@@ -290,11 +223,11 @@ tee - writes output also into the log file</code></pre>
 
 <p>Function composes SDAF deployment script command for <b>sap_system</b> or <b>workload_zone</b> according to official documentation. Although the documentation uses env OS variable references in the command, function replaces them with actual values. This is done for better debugging and logging transparency. Only sensitive values are hidden by using references.</p>
 
-<h2 id="prepare_sdaf_repo">prepare_sdaf_repo</h2>
+<h2 id="prepare_sdaf_project">prepare_sdaf_project</h2>
 
-<pre><code>prepare_sdaf_repo(
+<pre><code>prepare_sdaf_project(
      [, env_code=&gt;$env_code]
-     [, region_code=&gt;$region_code]
+     [, sdaf_region_code=&gt;$sdaf_region_code]
      [, workload_vnet_code=&gt;$workload_vnet_code]
      [, deployer_vnet_code=&gt;$workload_vnet_code]
      [, sap_sid=&gt;$sap_sid]);</code></pre>
@@ -307,17 +240,9 @@ tee - writes output also into the log file</code></pre>
 
 <p><b>workload_vnet_code</b>: Virtual network code for workload zone. Default: &#39;SDAF_WORKLOAD_VNET_CODE&#39;</p>
 
-<p><b>region_code</b>: SDAF internal code for azure region. Default: &#39;SDAF_REGION_CODE&#39;</p>
+<p><b>sdaf_region_code</b>: SDAF internal code for azure region. Default: &#39;PUBLIC_CLOUD_REGION&#39; converted to SDAF format</p>
 
 <p><b>sap_sid</b>: SAP system ID. Default &#39;SAP_SID&#39;</p>
-
-<h2 id="generate_resource_group_name">generate_resource_group_name</h2>
-
-<pre><code>generate_resource_group_name(deployment_type=&gt;$deployment_type);</code></pre>
-
-<p><b>$deployment_type</b>: Type of the deployment (workload_zone, sap_system, library... etc)</p>
-
-<p>Returns name of the resource group for the deployment type specified by <b>$deployment_type</b> . Resource group pattern: <i>SDAF-OpenQA-[deployment type]-[deployment id]-[OpenQA job id]</i></p>
 
 <h2 id="resource_group_exists">resource_group_exists</h2>
 
@@ -340,6 +265,36 @@ tee - writes output also into the log file</code></pre>
 <pre><code>sdaf_cleanup();</code></pre>
 
 <p>Performs full cleanup routine for <b>sap systems</b> and <b>workload zone</b> by executing SDAF remover.sh file. Deletes all files related to test run on deployer VM, even in case remover script fails. Resource groups need to be deleted manually in case of failure.</p>
+
+<h2 id="sdaf_execute_playbook">sdaf_execute_playbook</h2>
+
+<pre><code>sdaf_execute_playbook(
+    playbook_filename=&gt;&#39;playbook_04_00_01_db_ha.yaml&#39;,
+    sdaf_config_root_dir=&gt;&#39;/path/to/joy/and/happiness/&#39;
+    sap_sid=&gt;&#39;ABC&#39;,
+    timeout=&gt;&#39;42&#39;,
+    verbosity_level=&gt;&#39;3&#39;
+    );</code></pre>
+
+<p><b>playbook_filename</b> Filename of the playbook to be executed.</p>
+
+<p><b>sdaf_config_root_dir</b> SDAF Config directory containing SUT ssh keys</p>
+
+<p><b>sap_sid</b>: SAP system ID. Default &#39;SAP_SID&#39;</p>
+
+<p><b>timeout</b> Timeout for executing playbook. Passed into asset_script_run. Default: 1800s</p>
+
+<p><b>$verbosity_level</b> Change default verbosity value by either anything equal to &#39;true&#39; or int between 1-6. Default: false</p>
+
+<p>Execute playbook specified by <b>playbook_filename</b> and record command output in separate log file. Verbosity level of <b>ansible-playbook</b> is controlled by openQA parameter <b>SDAF_ANSIBLE_VERBOSITY_LEVEL</b>. If undefined, it will use standard output without adding any <b>-v</b> flag. See function <b>sdaf_execute_playbook</b> for details.</p>
+
+<h2 id="sdaf_ansible_verbosity_level">sdaf_ansible_verbosity_level</h2>
+
+<pre><code>sdaf_ansible_verbosity_level($verbosity_level);</code></pre>
+
+<p><b>$verbosity_level</b> Change default verbosity value by either anything equal to &#39;true&#39; or int between 1-6. Default: false</p>
+
+<p>Returns string that is to be used as verbosity parameter <b>-v</b> for &#39;ansible-playbook&#39; command. This is controlled by positional argument <b>$verbosity_level</b>. Values can specify verbosity level using integer up to 6 (max supported by ansible) or just set to anything equal to <b>&#39;true&#39;</b> which will default to <b>-vvvv</b>. Value <b>-vvvv</b> should be enough to debug network connection problems according to ansible documentation: <a href="https://docs.ansible.com/ansible/latest/cli/ansible-playbook.html#cmdoption-ansible-playbook-v">https://docs.ansible.com/ansible/latest/cli/ansible-playbook.html#cmdoption-ansible-playbook-v</a></p>
 
 
 </body>
