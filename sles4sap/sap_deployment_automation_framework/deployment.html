@@ -21,7 +21,7 @@
       <li><a href="#get_os_variable">get_os_variable</a></li>
       <li><a href="#set_common_sdaf_os_env">set_common_sdaf_os_env</a></li>
       <li><a href="#load_os_env_variables">load_os_env_variables</a></li>
-      <li><a href="#sdaf_prepare_ssh_keys">sdaf_prepare_ssh_keys</a></li>
+      <li><a href="#sdaf_prepare_private_key">sdaf_prepare_private_key</a></li>
       <li><a href="#az_get_ssh_key">az_get_ssh_key</a></li>
       <li><a href="#serial_console_diag_banner">serial_console_diag_banner</a></li>
       <li><a href="#prepare_tfvars_file">prepare_tfvars_file</a></li>
@@ -34,6 +34,7 @@
       <li><a href="#sdaf_cleanup">sdaf_cleanup</a></li>
       <li><a href="#sdaf_execute_playbook">sdaf_execute_playbook</a></li>
       <li><a href="#sdaf_ansible_verbosity_level">sdaf_ansible_verbosity_level</a></li>
+      <li><a href="#ansible_hanasr_show_status">ansible_hanasr_show_status</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap/sap_deployment_automation_framework/deployment.pm</h1>
@@ -147,7 +148,7 @@ tee - writes output also into the log file</code></pre>
 
 <p><b>sdaf_tfstate_storage_account</b>: Storage account residing in library resource group. Location for stored tfstate files. Default &#39;SDAF_TFSTATE_STORAGE_ACCOUNT&#39;</p>
 
-<p><b>sdaf_key_vault</b>: Key vault name inside Deployer resource group. Default &#39;SDAF_KEY_VAULT&#39;</p>
+<p><b>sdaf_key_vault</b>: Key vault name inside Deployer resource group. Default &#39;SDAF_DEPLYOER_KEY_VAULT&#39;</p>
 
 <p>Creates a file with common OS env variables required to run SDAF. File is sourced afterwards to make the values active. Keep in mind that values are lost after user logout (for example after disconnecting console redirection). You can load them back using <i>load_os_env_variables()</i> function OS env variables are core of how to execute SDAF and many are used even internally by SDAF code. For detailed variable description check : <a href="https://learn.microsoft.com/en-us/azure/sap/automation/naming">https://learn.microsoft.com/en-us/azure/sap/automation/naming</a></p>
 
@@ -157,25 +158,25 @@ tee - writes output also into the log file</code></pre>
 
 <p>Sources file containing OS env variables required for executing SDAF. Currently deployer VM is a permanent installation with all tests using it. Therefore using .bashrc file for storing variables is not an option since tests would constantly overwrite variables between each other.</p>
 
-<h2 id="sdaf_prepare_ssh_keys">sdaf_prepare_ssh_keys</h2>
+<h2 id="sdaf_prepare_private_key">sdaf_prepare_private_key</h2>
 
-<pre><code>sdaf_prepare_ssh_keys(deployer_key_vault=&gt;$deployer_key_vault);</code></pre>
+<pre><code>sdaf_prepare_private_key(key_vault=&gt;$key_vault);</code></pre>
 
-<p><b>deployer_key_vault</b>: Deployer key vault name</p>
+<p><b>key_vault</b>: Key vault name</p>
 
-<p>Retrieves public and private ssh key from DEPLOYER keyvault and sets up permissions.</p>
+<p>Retrieves public and private ssh key from specified keyvault and sets up permissions.</p>
 
 <h2 id="az_get_ssh_key">az_get_ssh_key</h2>
 
-<pre><code>az_get_ssh_key(deployer_key_vault=$deployer_key_vault, ssh_key_name=$key_name, ssh_key_filename=$ssh_key_filename);</code></pre>
+<pre><code>az_get_ssh_key(key_vault=$key_vault, ssh_key_name=$key_name, ssh_key_filename=$ssh_key_filename);</code></pre>
 
-<p><b>deployer_key_vault</b>: Deployer key vault name</p>
+<p><b>key_vault</b>: Key vault name</p>
 
 <p><b>ssh_key_name</b>: SSH key name residing on keyvault</p>
 
 <p><b>ssh_key_filename</b>: Target filename for SSH key</p>
 
-<p>Retrieves SSH key from DEPLOYER keyvault.</p>
+<p>Retrieves SSH key from specified keyvault.</p>
 
 <h2 id="serial_console_diag_banner">serial_console_diag_banner</h2>
 
@@ -295,6 +296,16 @@ tee - writes output also into the log file</code></pre>
 <p><b>$verbosity_level</b> Change default verbosity value by either anything equal to &#39;true&#39; or int between 1-6. Default: false</p>
 
 <p>Returns string that is to be used as verbosity parameter <b>-v</b> for &#39;ansible-playbook&#39; command. This is controlled by positional argument <b>$verbosity_level</b>. Values can specify verbosity level using integer up to 6 (max supported by ansible) or just set to anything equal to <b>&#39;true&#39;</b> which will default to <b>-vvvv</b>. Value <b>-vvvv</b> should be enough to debug network connection problems according to ansible documentation: <a href="https://docs.ansible.com/ansible/latest/cli/ansible-playbook.html#cmdoption-ansible-playbook-v">https://docs.ansible.com/ansible/latest/cli/ansible-playbook.html#cmdoption-ansible-playbook-v</a></p>
+
+<h2 id="ansible_hanasr_show_status">ansible_hanasr_show_status</h2>
+
+<pre><code>ansible_hanasr_show_status(sdaf_config_root_dir=&gt;&#39;/some/path&#39; [, sap_sid=&gt;&#39;CAT&#39;]);</code></pre>
+
+<p>Display simple command outputs from all DB hosts using <b>ansible</b> command.</p>
+
+<p><b>sdaf_config_root_dir</b> SDAF Config directory containing SUT ssh keys</p>
+
+<p><b>sap_sid</b>: SAP system ID. Default &#39;SAP_SID&#39;</p>
 
 
 </body>
