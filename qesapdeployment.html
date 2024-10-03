@@ -81,18 +81,16 @@
         </ul>
       </li>
       <li><a href="#qesap_az_clean_old_peerings">qesap_az_clean_old_peerings</a></li>
-      <li><a href="#qesap_az_get_native_fencing_type">qesap_az_get_native_fencing_type</a></li>
       <li><a href="#qesap_az_setup_native_fencing_permissions">qesap_az_setup_native_fencing_permissions</a></li>
       <li><a href="#qesap_az_enable_system_assigned_identity">qesap_az_enable_system_assigned_identity</a></li>
       <li><a href="#qesap_az_assign_role">qesap_az_assign_role</a></li>
       <li><a href="#qesap_az_get_tenant_id">qesap_az_get_tenant_id</a></li>
-      <li><a href="#qesap_az_validate_uuid_pattern">qesap_az_validate_uuid_pattern</a></li>
       <li><a href="#qesap_az_create_sas_token">qesap_az_create_sas_token</a></li>
       <li><a href="#qesap_az_list_container_files">qesap_az_list_container_files</a></li>
       <li><a href="#qesap_az_diagnostic_log">qesap_az_diagnostic_log</a></li>
-      <li><a href="#qesap_terraform_clean_up_retry">qesap_terraform_clean_up_retry</a></li>
       <li><a href="#qesap_terrafom_ansible_deploy_retry">qesap_terrafom_ansible_deploy_retry</a></li>
       <li><a href="#qesap_ansible_error_detection">qesap_ansible_error_detection</a></li>
+      <li><a href="#qesap_test_postfail">qesap_test_postfail</a></li>
     </ul>
   </li>
 </ul><h1>lib/qesapdeployment.pm</h1>
@@ -142,21 +140,22 @@ $args{section_content} defines content of names section.
 <h3 id="qesap_venv_cmd_exec">qesap_venv_cmd_exec</h3>
 
 <pre><code>Run a command within the Python virtualenv
-created by qesap_pip_install
+created by qesap_pip_install.
 
-Return is only valid if failok = 1</code></pre>
+This function never dies: it always returns an error to the caller.
+Timeout error is 124 (the one reported by timeout command line utility).</code></pre>
 
 <dl>
 
-<dt id="CMD---command-to-run-remotely"><b>CMD</b> - command to run remotely</dt>
+<dt id="CMD---command-to-run-within-the-.venv-usually-it-is-a-qesap.py-based-command"><b>CMD</b> - command to run within the .venv, usually it is a qesap.py based command</dt>
 <dd>
 
 </dd>
-<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
+<dt id="TIMEOUT---default-90-secs-has-to-be-an-integer-greater-than-0"><b>TIMEOUT</b> - default 90 secs, has to be an integer greater than 0</dt>
 <dd>
 
 </dd>
-<dt id="TIMEOUT---default-90-secs"><b>TIMEOUT</b> - default 90 secs</dt>
+<dt id="LOG_FILE---optional-argument-that-results-in-changing-the-command-to-redirect-the-output-to-a-log-file"><b>LOG_FILE</b> - optional argument that results in changing the command to redirect the output to a log file</dt>
 <dd>
 
 </dd>
@@ -173,11 +172,15 @@ Return is only valid if failok = 1</code></pre>
 <h3 id="qesap_pip_install">qesap_pip_install</h3>
 
 <pre><code>Install all Python requirements of the qe-sap-deployment
-in a dedicated virtual environment</code></pre>
+in a dedicated virtual environment.
+This function has no return code but it is expected to die
+if something internally fails.</code></pre>
 
 <h3 id="qesap_galaxy_install">qesap_galaxy_install</h3>
 
-<pre><code>Install all Ansible requirements of the qe-sap-deployment</code></pre>
+<pre><code>Install all Ansible requirements of the qe-sap-deployment.
+This function has no return code but it is expected to die
+if something internally fails.</code></pre>
 
 <h3 id="qesap_upload_logs">qesap_upload_logs</h3>
 
@@ -221,9 +224,17 @@ Example:
     logname =&gt; &#39;terraform_destroy.log.txt&#39;
     [, verbose =&gt; 1, cmd_options =&gt; $cmd_options] );
 
+Example:
+    qesap_execute(cmd =&gt; &#39;terraform&#39;, cmd_options =&gt; &#39;-d&#39;)
+result in:
+    qesap.py terraform -d
+
 Execute qesap glue script commands. Check project documentation for available options:
 https://github.com/SUSE/qe-sap-deployment
-Test only returns execution result, failure has to be handled by calling method.</code></pre>
+Function returns a two element array:
+  - first element is an integer representing the execution result
+  - second element is the file path of the execution log
+This function is not expected to internally die, any failure has to be handled by the caller.</code></pre>
 
 <dl>
 
@@ -231,7 +242,7 @@ Test only returns execution result, failure has to be handled by calling method.
 <dd>
 
 </dd>
-<dt id="LOGNAME---filename-of-the-log-file"><b>LOGNAME</b> - filename of the log file.</dt>
+<dt id="LOGNAME---filename-of-the-log-file.-This-file-will-be-saved-in-tmp-folder"><b>LOGNAME</b> - filename of the log file. This file will be saved in `/tmp` folder</dt>
 <dd>
 
 </dd>
@@ -243,7 +254,7 @@ Test only returns execution result, failure has to be handled by calling method.
 <dd>
 
 </dd>
-<dt id="TIMEOUT---max-expected-execution-time"><b>TIMEOUT</b> - max expected execution time</dt>
+<dt id="TIMEOUT---max-expected-execution-time-default-90sec"><b>TIMEOUT</b> - max expected execution time, default 90sec</dt>
 <dd>
 
 </dd>
@@ -255,7 +266,7 @@ Test only returns execution result, failure has to be handled by calling method.
 cmd =&gt; $qesap_script_cmd,
 error_string =&gt; &#39;Fatal:&#39;,
 logname =&gt; &#39;somefile.txt&#39;
-[, verbose =&gt; 1, cmd_options =&gt; $cmd_options] );
+[, verbose =&gt; 1s] );
 
 Execute qesap glue script commands. Check project documentation for available options:
 https://github.com/SUSE/qe-sap-deployment
@@ -267,19 +278,15 @@ Test only returns execution result, failure has to be handled by calling method.
 <dd>
 
 </dd>
-<dt id="CMD_OPTIONS---set-of-arguments-for-the-qesap.py-subcommand1"><b>CMD_OPTIONS</b> - set of arguments for the qesap.py subcommand</dt>
-<dd>
-
-</dd>
 <dt id="VERBOSE---activate-verbosity-in-qesap.py1"><b>VERBOSE</b> - activate verbosity in qesap.py</dt>
 <dd>
 
 </dd>
-<dt id="TIMEOUT---max-expected-execution-time1"><b>TIMEOUT</b> - max expected execution time</dt>
+<dt id="TIMEOUT---max-expected-execution-time-default-90sec1"><b>TIMEOUT</b> - max expected execution time, default 90sec</dt>
 <dd>
 
 </dd>
-<dt id="LOGNAME---filename-of-the-log-file1"><b>LOGNAME</b> - filename of the log file.</dt>
+<dt id="LOGNAME---filename-of-the-log-file"><b>LOGNAME</b> - filename of the log file.</dt>
 <dd>
 
 </dd>
@@ -402,7 +409,7 @@ the hosts from the inventory.yaml</code></pre>
 <dd>
 
 </dd>
-<dt id="CMD---command-to-run-remotely1"><b>CMD</b> - command to run remotely</dt>
+<dt id="CMD---command-to-run-remotely"><b>CMD</b> - command to run remotely</dt>
 <dd>
 
 </dd>
@@ -414,7 +421,7 @@ the hosts from the inventory.yaml</code></pre>
 <dd>
 
 </dd>
-<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die1"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
+<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
 <dd>
 
 </dd>
@@ -422,7 +429,7 @@ the hosts from the inventory.yaml</code></pre>
 <dd>
 
 </dd>
-<dt id="TIMEOUT---default-90-secs1"><b>TIMEOUT</b> - default 90 secs</dt>
+<dt id="TIMEOUT---default-90-secs"><b>TIMEOUT</b> - default 90 secs</dt>
 <dd>
 
 </dd>
@@ -455,7 +462,7 @@ remotely executed command.</code></pre>
 <dd>
 
 </dd>
-<dt id="CMD---command-to-run-remotely2"><b>CMD</b> - command to run remotely</dt>
+<dt id="CMD---command-to-run-remotely1"><b>CMD</b> - command to run remotely</dt>
 <dd>
 
 </dd>
@@ -479,7 +486,7 @@ remotely executed command.</code></pre>
 <dd>
 
 </dd>
-<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die2"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
+<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die1"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
 <dd>
 
 </dd>
@@ -507,7 +514,7 @@ remotely executed command.</code></pre>
 <dd>
 
 </dd>
-<dt id="CMD---command-to-run-remotely3"><b>CMD</b> - command to run remotely</dt>
+<dt id="CMD---command-to-run-remotely2"><b>CMD</b> - command to run remotely</dt>
 <dd>
 
 </dd>
@@ -523,11 +530,11 @@ remotely executed command.</code></pre>
 <dd>
 
 </dd>
-<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die3"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
+<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die2"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
 <dd>
 
 </dd>
-<dt id="TIMEOUT---max-expected-execution-time2"><b>TIMEOUT</b> - max expected execution time</dt>
+<dt id="TIMEOUT---max-expected-execution-time"><b>TIMEOUT</b> - max expected execution time</dt>
 <dd>
 
 </dd>
@@ -582,7 +589,7 @@ Return the local path of the downloaded file.</code></pre>
 <dd>
 
 </dd>
-<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die4"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
+<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die3"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
 <dd>
 
 </dd>
@@ -655,7 +662,7 @@ Return total time of retry loop in case of pass.</code></pre>
 <dd>
 
 </dd>
-<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die5"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
+<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die4"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
 <dd>
 
 </dd>
@@ -806,7 +813,8 @@ Return 0 (false) if delete-transit-gateway-vpc-attachment fails or
 
 <h3 id="qesap_aws_get_vpc_workspace">qesap_aws_get_vpc_workspace</h3>
 
-<pre><code>Get the VPC tag Workspace</code></pre>
+<pre><code>Get the VPC tag workspace defined in
+https://github.com/SUSE/qe-sap-deployment/blob/main/terraform/aws/infrastructure.tf</code></pre>
 
 <dl>
 
@@ -819,7 +827,7 @@ Return 0 (false) if delete-transit-gateway-vpc-attachment fails or
 <h3 id="qesap_aws_get_routing">qesap_aws_get_routing</h3>
 
 <pre><code>Get the Routing table: searching Routing Table with external connection
-and get the Workspace tag</code></pre>
+and get the RouteTableId</code></pre>
 
 <dl>
 
@@ -1063,10 +1071,6 @@ empty string if a peering doesn&#39;t exist</code></pre>
 </dd>
 </dl>
 
-<h2 id="qesap_az_get_native_fencing_type">qesap_az_get_native_fencing_type</h2>
-
-<pre><code>Gets the native fencing type (spn/msi)</code></pre>
-
 <h2 id="qesap_az_setup_native_fencing_permissions">qesap_az_setup_native_fencing_permissions</h2>
 
 <pre><code>qesap_az_setup_native_fencing_permissions(vmname=&gt;$vm_name,
@@ -1121,14 +1125,6 @@ Assigns defined role to &#39;assignee&#39; (user, vm, etc...) using subscription
 
 Returns tenant ID related to the specified subscription ID.
 subscription_id - valid azure subscription</code></pre>
-
-<h2 id="qesap_az_validate_uuid_pattern">qesap_az_validate_uuid_pattern</h2>
-
-<pre><code>qesap_az_validate_uuid_pattern( uuid_string=&gt;$uuid_string )
-
-Function checks input string against uuid pattern
-which is commonly used as an identifier for azure resources.
-returns uuid (true) on match, 0 (false) on mismatch.</code></pre>
 
 <h2 id="qesap_az_create_sas_token">qesap_az_create_sas_token</h2>
 
@@ -1194,14 +1190,6 @@ returns uuid (true) on match, 0 (false) on mismatch.</code></pre>
 
 <p>Return a list of diagnostic file paths on the JumpHost</p>
 
-<h2 id="qesap_terraform_clean_up_retry">qesap_terraform_clean_up_retry</h2>
-
-<pre><code>qesap_terraform_clean_up_retry()
-
-Perform terraform destroy and catch and ignore any error.
-This method is mostly useful when doing cleanup before retry in case of
-Ansible failed on &#39;Timed out waiting for last boot time check&#39;</code></pre>
-
 <h2 id="qesap_terrafom_ansible_deploy_retry">qesap_terrafom_ansible_deploy_retry</h2>
 
 <pre><code>qesap_terrafom_ansible_deploy_retry( error_log=&gt;$error_log )
@@ -1238,6 +1226,25 @@ Return:
 <dl>
 
 <dt id="ERROR_LOG---error-log-filename1"><b>ERROR_LOG</b> - error log filename</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="qesap_test_postfail">qesap_test_postfail</h2>
+
+<pre><code>qesap_test_postfail()
+
+Post fail tasks suitable for post_fail_hook of the test modules.
+This API is mainly designed for qesap regresstion test modules.</code></pre>
+
+<dl>
+
+<dt id="PROVIDER---cloud-provider-name-as-from-PUBLIC_CLOUD_PROVIDER-setting1"><b>PROVIDER</b> - cloud provider name as from PUBLIC_CLOUD_PROVIDER setting</dt>
+<dd>
+
+</dd>
+<dt id="NET_PEERING_ID---ID-of-the-network-peering-for-Azure-it-has-to-be-the-name-of-the-Resource-Group-of-the-mirror-for-AWS-it-has-to-be-the-something-different-from-an-empty-string-for-example-the-setting-about-the-IP-RANGE"><b>NET_PEERING_ID</b> - ID of the network peering, for Azure it has to be the name of the Resource Group of the mirror, for AWS it has to be the something different from an empty string, for example the setting about the IP RANGE.</dt>
 <dd>
 
 </dd>
