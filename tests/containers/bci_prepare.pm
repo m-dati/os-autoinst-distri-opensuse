@@ -63,7 +63,8 @@ sub packages_to_install {
         } elsif ($version =~ /15\.[1-3]/) {
             push @packages, ('skopeo');
         } else {
-            script_retry("SUSEConnect -p sle-module-python3/$version/$arch", delay => 60, retry => 3, timeout => $scc_timeout) if ($host_distri =~ /sles/);
+            script_retry("SUSEConnect -p sle-module-python3/$version/$arch", delay => 60, retry => 3, timeout => $scc_timeout)
+                if ($host_distri =~ /sles/ and $version =~ /15\./ );
             push @packages, qw(python311 skopeo python311-pip python311-tox);
         }
     } elsif ($host_distri =~ /opensuse/) {
