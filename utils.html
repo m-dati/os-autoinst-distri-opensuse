@@ -89,6 +89,7 @@
       <li><a href="#assert_file_content-assert_file_content-path-value">assert_file_content assert_file_content( &quot;path&quot;, value );</a></li>
       <li><a href="#ensure_ca_certificates_suse_installed-ensure_ca_certificates_suse_installed">ensure_ca_certificates_suse_installed ensure_ca_certificates_suse_installed();</a></li>
       <li><a href="#install_patterns-install_patterns">install_patterns install_patterns();</a></li>
+      <li><a href="#ensure_service_disabled-ensure_service_disabled">ensure_service_disabled ensure_service_disabled();</a></li>
       <li><a href="#permit_root_ssh-permit_root_ssh">permit_root_ssh permit_root_ssh();</a></li>
       <li><a href="#permit_root_ssh_in_sol-permit_root_ssh_in_sol">permit_root_ssh_in_sol permit_root_ssh_in_sol();</a></li>
       <li><a href="#cleanup_disk_space-cleanup_disk_space">cleanup_disk_space cleanup_disk_space();</a></li>
@@ -115,6 +116,9 @@
       <li><a href="#enable_console_kernel_log">enable_console_kernel_log</a></li>
       <li><a href="#is_disk_image">is_disk_image</a></li>
       <li><a href="#is_ipxe_with_disk_image">is_ipxe_with_disk_image</a></li>
+      <li><a href="#is_reboot_needed">is_reboot_needed</a></li>
+      <li><a href="#install_extra_packages">install_extra_packages</a></li>
+      <li><a href="#render_autoinst_url">render_autoinst_url</a></li>
     </ul>
   </li>
 </ul><h1>lib/utils.pm</h1>
@@ -707,6 +711,10 @@ zypper_ar(&#39;https://download.opensuse.org/repositories/devel:/kubic/openSUSE_
 
 <p>This functions install extra patterns if var PATTERNS is set.</p>
 
+<h2 id="ensure_service_disabled-ensure_service_disabled">ensure_service_disabled ensure_service_disabled();</h2>
+
+<p>Make sure service is disabled before test.</p>
+
 <h2 id="permit_root_ssh-permit_root_ssh">permit_root_ssh permit_root_ssh();</h2>
 
 <p>Due to bsc#1173067, openssh now no longer allows RootLogin using password auth on Tumbleweed, the latest SLE16 and Leap16 will sync with Tumbleweed as well.</p>
@@ -857,6 +865,24 @@ script_finish_io(exitcode =&gt; [12]);</code></pre>
 <pre><code>is_ipxe_with_disk_image;</code></pre>
 
 <p>Identify whether test runs boots from ipxe and deploy linux disk image built by kiwi or similar programs</p>
+
+<h2 id="is_reboot_needed">is_reboot_needed</h2>
+
+<pre><code>is_reboot_needed(username =&gt; &#39;name&#39;, address =&gt; &#39;address&#39;);</code></pre>
+
+<p>Identify whether rebooting needed after system being changed. Arguments username and address can be used to specify remote user and host if operation is not local.</p>
+
+<h2 id="install_extra_packages">install_extra_packages</h2>
+
+<pre><code>install_extra_packages(repos =&gt; &#39;repositories&#39;, packages =&gt; &#39;packages&#39;);</code></pre>
+
+<p>Install extra packages that are only available in extra repositories. User may need to install some useful utilities from other repositories to facilitate test run. At the same time, it also needs to ensure such operations will not alter existing system. Althought user should not be prevented from installing legitimate tools and utilities, it is expected that use of additional packages should be limited to the minimum and their impact should be paid attention to. User can specify required repositories and pacakges via arguments, repos and packages or settings INSTALL_OTHER_REPOS and INSTALL_OTHER_PACKAGES.</p>
+
+<h2 id="render_autoinst_url">render_autoinst_url</h2>
+
+<pre><code>render_autoinst_url(url =&gt; &#39;openQA url&#39;);</code></pre>
+
+<p>In order to avoid downloading resources directly from openQA instance, rendering autoinst url from given openQA url is necessary. Argument url accetps legal HTTP url addresses, but it will be returned directly without rendering if it is not an openQA url.</p>
 
 
 </body>
