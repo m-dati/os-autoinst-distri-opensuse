@@ -12,13 +12,9 @@ conditional_schedule:
             'aarch64':
                 - yam/agama/boot_agama
                 - yam/agama/agama_auto
-    boot_ppc:
-        ARCH:
             'ppc64le':
                 - yam/agama/boot_agama
                 - yam/agama/agama_auto
-    boot_390:
-        ARCH:
             's390x':
                 - installation/bootloader_zkvm
                 - installation/agama_reboot
@@ -41,8 +37,6 @@ conditional_schedule:
 
 schedule:
     - '{{boot_64}}'
-    - '{{boot_390}}'
-    - '{{boot_ppc}}'
     - installation/first_boot
     - autoyast/console.pm
     - '{{grub_set_bootargs}}'

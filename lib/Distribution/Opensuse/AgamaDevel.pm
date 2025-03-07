@@ -24,6 +24,8 @@ use Yam::Agama::Pom::EnterPassphraseForRootPage;
 use Yam::Agama::Pom::EnterPassphraseForSwapPage;
 
 use Utils::Architectures;
+use Utils::Backends qw(is_qemu);
+use testapi qw(get_var);
 
 sub get_grub_menu_agama {
     return Yam::Agama::Pom::GrubMenuAgamaPage->new({
@@ -49,12 +51,12 @@ sub get_grub_entry_edition {
 
 sub get_agama_up_an_running {
     return is_ppc64le() ? Yam::Agama::Pom::AgamaUpAndRunningPage->new({
-            timeout_expect_is_shown => 300})
+            timeout_expect_is_shown => get_var('TIMEOUT_PPC_AGAMA_RUNNING', 300)})
       : Yam::Agama::Pom::AgamaUpAndRunningPage->new();
 }
 
 sub get_reboot {
-    return Yam::Agama::Pom::RebootTextmodePage->new() if is_s390x() || is_ppc64le();
+    return Yam::Agama::Pom::RebootTextmodePage->new() if is_s390x() || (is_ppc64le() && !is_qemu());
     return Yam::Agama::Pom::RebootPage->new();
 }
 
