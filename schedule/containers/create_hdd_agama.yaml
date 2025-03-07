@@ -16,7 +16,7 @@ conditional_schedule:
         ARCH:
             'ppc64le':
                 - yam/agama/boot_agama
-                - yam/agama/agama_auto
+                - installation/agama_reboot
     boot_390:
         ARCH:
             's390x':

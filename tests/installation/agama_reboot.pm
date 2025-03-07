@@ -22,7 +22,7 @@ use strict;
 use warnings;
 use base "installbasetest";
 use testapi;
-use version_utils qw(is_leap is_sle);
+use version_utils qw(is_leap is_sle is_opensuse);
 use utils;
 use Utils::Logging qw(export_healthcheck_basic);
 use x11utils 'ensure_unlocked_desktop';
@@ -60,7 +60,7 @@ sub verify_agama_auto_install_done_cmdline {
 
 sub run {
     my ($self) = @_;
-
+    # install agama cli when not found
     if ((is_ipmi || is_pvm || is_s390x) && get_var('AGAMA_AUTO')) {
         select_console('root-console');
         record_info 'Wait for installation phase done';
@@ -83,13 +83,15 @@ sub run {
         return;
     }
 
-    assert_screen('agama-congratulations');
+    assert_screen('agama-congratulations') if (is_opensuse);
+    assert_screen('agama-install-finished') unless (is_opensuse);
     console('installation')->set_tty(get_agama_install_console_tty());
     upload_agama_logs();
     select_console('installation', await_console => 0);
     # make sure newly booted system does not expect we're still logged in console
     reset_consoles();
-    assert_and_click('agama-reboot-after-install');
+    assert_and_click('agama-reboot-after-install') if (is_opensuse);
+    assert_screen('agama-install-finished') unless (is_opensuse);
 
     # workaround for lack of disable bootloader timeout
     # https://github.com/openSUSE/agama/issues/1594
