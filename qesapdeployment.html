@@ -34,7 +34,7 @@
           <li><a href="#qesap_yaml_replace">qesap_yaml_replace</a></li>
           <li><a href="#qesap_execute">qesap_execute</a></li>
           <li><a href="#qesap_execute_conditional_retry">qesap_execute_conditional_retry</a></li>
-          <li><a href="#qesap_file_find_string">qesap_file_find_string</a></li>
+          <li><a href="#qesap_file_find_strings">qesap_file_find_strings</a></li>
           <li><a href="#qesap_get_inventory">qesap_get_inventory</a></li>
           <li><a href="#qesap_get_nodes_number">qesap_get_nodes_number</a></li>
           <li><a href="#qesap_get_nodes_names">qesap_get_nodes_names</a></li>
@@ -52,8 +52,10 @@
           <li><a href="#qesap_remote_hana_public_ips">qesap_remote_hana_public_ips</a></li>
           <li><a href="#qesap_wait_for_ssh">qesap_wait_for_ssh</a></li>
           <li><a href="#qesap_upload_crm_report">qesap_upload_crm_report</a></li>
+          <li><a href="#qesap_upload_supportconfig_logs">qesap_upload_supportconfig_logs</a></li>
           <li><a href="#qesap_cluster_log_cmds">qesap_cluster_log_cmds</a></li>
           <li><a href="#qesap_cluster_logs">qesap_cluster_logs</a></li>
+          <li><a href="#qesap_supportconfig_logs">qesap_supportconfig_logs</a></li>
           <li><a href="#qesap_calculate_deployment_name">qesap_calculate_deployment_name</a></li>
           <li><a href="#qesap_aws_get_region_subnets">qesap_aws_get_region_subnets</a></li>
           <li><a href="#qesap_aws_get_vpc_id">qesap_aws_get_vpc_id</a></li>
@@ -184,7 +186,8 @@ if something internally fails.</code></pre>
 
 <pre><code>qesap_upload_logs([failok=1])
 
-Collect and upload logs present in @log_files.</code></pre>
+Collect and upload logs present in @log_files.
+This is about logs generated locally on the jumphost.</code></pre>
 
 <dl>
 
@@ -262,13 +265,13 @@ This function is not expected to internally die, any failure has to be handled b
 
 <pre><code>qesap_execute_conditional_retry(
 cmd =&gt; $qesap_script_cmd,
-error_string =&gt; &#39;Fatal:&#39;,
+error_list =&gt; [&#39;Fatal:&#39;],
 logname =&gt; &#39;somefile.txt&#39;
 [, verbose =&gt; 1s] );
 
 Execute qesap glue script commands. Check project documentation for available options:
 https://github.com/SUSE/qe-sap-deployment
-Test only returns execution result, failure has to be handled by calling method.</code></pre>
+Test returns execution result, or dies in case of terraform apply/destroy failure</code></pre>
 
 <dl>
 
@@ -292,7 +295,7 @@ Test only returns execution result, failure has to be handled by calling method.
 <dd>
 
 </dd>
-<dt id="ERROR_STRING---error-string-to-look-for"><b>ERROR_STRING</b> - error string to look for</dt>
+<dt id="ERROR_LIST---list-of-error-strings-to-search-for-in-the-log-file.-If-any-is-found-it-enables-terraform-retry"><b>ERROR_LIST</b> - list of error strings to search for in the log file. If any is found, it enables terraform retry</dt>
 <dd>
 
 </dd>
@@ -302,10 +305,10 @@ Test only returns execution result, failure has to be handled by calling method.
 </dd>
 </dl>
 
-<h3 id="qesap_file_find_string">qesap_file_find_string</h3>
+<h3 id="qesap_file_find_strings">qesap_file_find_strings</h3>
 
-<pre><code>Search for a string in the Ansible log file.
-Returns 1 if the string is found in the log file, 0 otherwise.</code></pre>
+<pre><code>Search for a list of strings in the Ansible log file.
+Returns 1 if any of the strings are found in the log file, 0 otherwise.</code></pre>
 
 <dl>
 
@@ -313,7 +316,7 @@ Returns 1 if the string is found in the log file, 0 otherwise.</code></pre>
 <dd>
 
 </dd>
-<dt id="SEARCH_STRING---String-to-search-for-in-the-log-file.-Required"><b>SEARCH_STRING</b> - String to search for in the log file. (Required)</dt>
+<dt id="SEARCH_STRINGS---Array-of-strings-to-search-for-in-the-log-file.-Required"><b>SEARCH_STRINGS</b> - Array of strings to search for in the log file. (Required)</dt>
 <dd>
 
 </dd>
@@ -680,13 +683,47 @@ Return total time of retry loop in case of pass.</code></pre>
 </dd>
 </dl>
 
+<h3 id="qesap_upload_supportconfig_logs">qesap_upload_supportconfig_logs</h3>
+
+<pre><code>Genarate supportconfig log on a host and upload the resulting tarball to openqa</code></pre>
+
+<dl>
+
+<dt id="HOST---host-to-get-the-report-from1"><b>HOST</b> - host to get the report from</dt>
+<dd>
+
+</dd>
+<dt id="PROVIDER---Cloud-provider-name-used-to-find-the-inventory5"><b>PROVIDER</b> - Cloud provider name, used to find the inventory</dt>
+<dd>
+
+</dd>
+<dt id="FAILOK---if-not-set-Ansible-failure-result-in-die5"><b>FAILOK</b> - if not set, Ansible failure result in die</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h3 id="qesap_cluster_log_cmds">qesap_cluster_log_cmds</h3>
 
 <pre><code>List of commands to collect logs from a deployed cluster</code></pre>
 
 <h3 id="qesap_cluster_logs">qesap_cluster_logs</h3>
 
-<pre><code>Collect logs from a deployed cluster</code></pre>
+<pre><code>Collect logs from a deployed cluster.
+This is about logs generated remotely on the two HANA nodes,
+`crm report` collection is part of this function.</code></pre>
+
+<h3 id="qesap_supportconfig_logs">qesap_supportconfig_logs</h3>
+
+<pre><code>Collect supportconfig logs from all HANA nodes of a deployed cluster</code></pre>
+
+<dl>
+
+<dt id="PROVIDER---Cloud-provider-name-using-same-format-of-PUBLIC_CLOUD_PROVIDER-setting4"><b>PROVIDER</b> - Cloud provider name using same format of PUBLIC_CLOUD_PROVIDER setting</dt>
+<dd>
+
+</dd>
+</dl>
 
 <h3 id="qesap_calculate_deployment_name">qesap_calculate_deployment_name</h3>
 
