@@ -30,12 +30,17 @@ use Utils::Backends qw(is_ipmi is_pvm is_svirt);
 use Utils::Architectures qw(is_aarch64 is_s390x);
 use power_action_utils 'assert_shutdown_and_restore_system';
 
+sub journal_log {
+    script_run('journalctl -u agama --no-pager > /tmp/journal.log; gzip /tmp/journal.log');
+    upload_logs('/tmp/journal.log.gz');
+}
 sub upload_agama_logs {
     return if (get_var('NOLOGS'));
     select_console("root-console");
     # stores logs in /tmp/agma-logs.tar.gz
     script_run('agama logs store -d /tmp');
     upload_logs('/tmp/agama-logs.tar.gz');
+    journal_log;
 }
 
 sub get_agama_install_console_tty {
@@ -48,13 +53,16 @@ sub verify_agama_auto_install_done_cmdline {
     # so we need to make sure the installation has completed from command line.
     my $timeout = get_var('AGAMA_INSTALL_TIMEOUT', '480');
     while ($timeout > 0) {
-        if (script_run("journalctl -u agama | grep 'Install phase done'") == 0) {
+        if (script_run("journalctl -u agama --no-pager| grep 'Install phase done'") == 0) {
             record_info("agama install phase done");
             return;
         }
         sleep 20;
         $timeout = $timeout - 20;
     }
+    # pre-analysis
+    record_info("No agama software installation found")
+      if (script_run("journalctl -u agama --no-pager| grep -i 'software: Installing'"));
     die "Install phase is not done, please check agama logs";
 }
 
@@ -69,6 +77,7 @@ sub run {
         script_run('agama config show > /tmp/agama_config.txt');
         upload_logs('/tmp/agama-logs.tar.gz');
         upload_logs('/tmp/agama_config.txt');
+        journal_log;
         record_info 'Reboot system to disk boot';
         enter_cmd 'reboot';
         # Swith back to sol console, then user can monitor the boot log
@@ -116,6 +125,5 @@ sub post_fail_hook {
     export_healthcheck_basic();
     upload_agama_logs();
 }
-
 
 1;

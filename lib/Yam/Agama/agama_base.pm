@@ -26,7 +26,7 @@ sub upload_agama_logs {
     save_and_upload_log('agama config show > /tmp/agama-config.json', "/tmp/agama-config.json", {timeout => 60});
     script_run("agama logs store -d /tmp/agama-logs", {timeout => 60});
     upload_logs("/tmp/agama-logs.tar.gz", failok => 1);
-    save_and_upload_log('journalctl -b > /tmp/journal.log', "/tmp/journal.log", {timeout => 60});
+    save_and_upload_log('journalctl -b --no-pager > /tmp/journal.log', "/tmp/journal.log", {timeout => 60});
 }
 
 sub upload_browser_automation_dumps {
