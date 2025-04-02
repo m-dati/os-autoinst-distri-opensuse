@@ -61,7 +61,7 @@ sub verify_agama_auto_install_done_cmdline {
         $timeout = $timeout - 20;
     }
     # pre-analysis
-    record_info("No agama software installation found")
+    record_info("INSTALL ISSUE", "No agama software installation found in journal")
       if (script_run("journalctl -u agama --no-pager| grep -i 'software: Installing'"));
     die "Install phase is not done, please check agama logs";
 }
