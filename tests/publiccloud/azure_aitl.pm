@@ -44,6 +44,9 @@ sub run {
     my $created_by = "$openqa_url/t$job_id";
     my $tags = "openqa-aitl=$job_id openqa_created_by=$created_by openqa_var_server=$openqa_url";
 
+    my $aitl_job = "python3.11 /tmp/aitl.py job";
+    my $monitoring = "{RUNNING:length([?@=='RUNNING']),QUEUED:length([?@=='QUEUED']),ASSIGNED:length([?@=='ASSIGNED']),FAILED:length([?@=='FAILED'])}";
+
     # Get the AITL script
     assert_script_run("curl https://raw.githubusercontent.com/microsoft/lisa/refs/tags/$aitl_client_version/microsoft/utils/aitl/aitl.py -o /tmp/aitl.py");
 
@@ -64,7 +67,7 @@ sub run {
     }
 
     # Create AITL Job based on a manifest
-    assert_script_run("python3.11 /tmp/aitl.py job create $aitl_get_options -b @/tmp/$aitl_manifest");
+    assert_script_run("$aitl_job create $aitl_get_options -b @/tmp/$aitl_manifest");
 
     # Wait a few seconds to give Azure time to create the jobs
     sleep(10);
@@ -75,18 +78,20 @@ sub run {
     my $status_data;
     while (1) {
         # Get the current job status
-        my $status = script_output(qq(python3.11 /tmp/aitl.py job get $aitl_get_options -q "properties.results[].status|{RUNNING:length([?@=='RUNNING']),QUEUED:length([?@=='QUEUED']),ASSIGNED:length([?@=='ASSIGNED']),FAILED:length([?@=='FAILED'])}"));
+        my $status = script_output(qq($aitl_job get $aitl_get_options -q "properties.results[].status|$monitoring"| grep -Fv "][INFO] "| grep "."));
 
-        # Remove the first two non-JSON lines from the status JSON
-        $status =~ s/^(?:.*\n){1,3}//;
+        # Remove the first [two] non-JSON lines from the status JSON
+        # $status =~ s/^(?:.*\n){1,3}//;
+        $status =~ s/^\d+.*\[\d+\]\[INFO\].*\n|\n//;
+        record_info("CHECK1:", $status);
 
         # Decode the status JSON
         $status_data = decode_json($status);
-
         # Check if there are still jobs in RUNNING, QUEUED, or ASSIGNED state
         if ($status_data->{RUNNING} == 0 && $status_data->{QUEUED} == 0 && $status_data->{ASSIGNED} == 0) {
             last;    # Exit the loop if no jobs are in these states
         }
+        record_info("CHECK2:", $status_data);
 
         # Print the status
         print("Unfinished AITL Jobs! Running:", $status_data->{RUNNING}, " QUEUED: ", $status_data->{QUEUED}, " ASSIGNED: ", $status_data->{ASSIGNED});
@@ -96,10 +101,13 @@ sub run {
     }
 
     # Need to save results to a variable
-    my $results = script_output("python3.11 /tmp/aitl.py job get $aitl_get_options -q 'properties.results[]'");
+    my $results = script_output("$aitl_job get $aitl_get_options -q 'properties.results[]'");
 
     # Remove the first two non-JSON lines from the results JSON.
-    $results =~ s/^(?:.*\n){1,3}//;
+    # $results =~ s/^(?:.*\n){1,3}//;
+    $results =~ s/^\d+.*\[\d+\]\[INFO\].*\n|\s*//;
+
+    record_info("CHECK:", $results);
 
     # Convert to JUnit XML and upload to host
     my $extra_log = json_to_xml($results, $aitl_image_name);
