@@ -306,7 +306,7 @@ The following variables are relevant for publiccloud related jobs. Keep in mind 
 Variable        | Type      | Default value | Details
 ---             | ---       | ---           | ---
 CLUSTER_TYPES | string | false | Set the type of cluster that have to be analyzed (example: "drbd hana").
-PUBLIC_AZURE_CLI_TEST | string | "vmss" | Azure CLI test names. This variable should list the test name which should be tested.
+PUBLIC_CLOUD_AITL_TIMEOUT | int | empty | Azure AITL tests max time in s. to run. PUBLIC_AZURE_CLI_TEST | string | "vmss" | Azure CLI test names. This variable should list the test name which should be tested.
 PUBLIC_CLOUD | boolean | false | All Public Cloud tests have this variable set to true. Contact: qa-c@suse.de
 PUBLIC_CLOUD_ACCNET | boolean | false | If set, az_accelerated_net test module is added to the job.
 PUBLIC_CLOUD_ACCOUNT | string | "" | For GCE will set account via `gcloud config set account ' . $self->account`.
