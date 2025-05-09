@@ -13,7 +13,7 @@ use Mojo::Base qw(consoletest);
 use testapi;
 use utils;
 use power_action_utils;
-use version_utils qw(check_os_release get_os_release is_sle);
+use version_utils qw(check_os_release get_os_release is_sle skip_root_console_selection);
 
 sub run {
     my ($self) = @_;
@@ -44,8 +44,13 @@ sub run {
 
     # Perform system reboot to ensure the system is still ok
     my $prev_console = current_console();
-    power_action('reboot', textmode => 1);
-    $self->wait_boot(bootloader_time => 300);
+    diag "Current console: " . $prev_console;
+    # check tty
+    script_run("tty");
+    # keepconsole, w.a. for sle16 ppc64le issue, login prompt selected
+    power_action('reboot', keepconsole => skip_root_console_selection(), textmode => 1);
+    # skip check, w.a. for issue
+    $self->wait_boot(bootloader_time => 300) unless skip_root_console_selection();
     select_console($prev_console);
 }
 

@@ -7,7 +7,7 @@ use base Exporter;
 use Exporter;
 use strict;
 use warnings;
-use testapi qw(check_var get_var set_var script_output);
+use testapi qw(check_var get_var set_var script_output check_screen);
 use version 'is_lax';
 use Carp 'croak';
 use Utils::Backends;
@@ -65,6 +65,7 @@ use constant {
           php_version
           has_selinux_by_default
           has_selinux
+          skip_root_console_selection
         )
     ],
     BACKEND => [
@@ -1046,3 +1047,9 @@ Check if agama installation is being used
 sub is_agama {
     return (get_var('AGAMA') || get_var('INST_AUTO'));
 }
+
+# Check for conditional skipping 'select_console root_console' in various modules
+sub skip_root_console_selection {
+    return (is_sle("16+") && is_ppc64le && check_screen('root-console')) ? 1 : 0;
+}
+

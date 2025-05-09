@@ -16,7 +16,7 @@ use base 'consoletest';
 use testapi;
 use utils;
 use zypper;
-use version_utils qw(is_sle is_agama);
+use version_utils qw(is_sle is_agama skip_root_console_selection);
 use serial_terminal 'prepare_serial_console';
 use bootloader_setup qw(change_grub_config grub_mkconfig);
 use registration;
@@ -33,7 +33,8 @@ use suseconnect_register qw(command_register);
 
 sub run {
     my ($self) = @_;
-    select_console 'root-console';
+    # skip select, for issue in sle16/ppc64le, activating tty6/login.
+    select_console 'root-console' unless skip_root_console_selection();
 
     ensure_serialdev_permissions;
 

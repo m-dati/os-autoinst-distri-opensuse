@@ -11,12 +11,14 @@ use base "opensusebasetest";
 use testapi;
 use power_action_utils qw(power_action check_bsc1215132);
 use utils;
+use version_utils qw(is_sle skip_root_console_selection);
 
 sub run {
     my $self = shift;
-    select_console('root-console');
+    # skip select, for issue in sle16 ppc64le, activating login/tty6.
+    select_console 'root-console' unless skip_root_console_selection();
     systemctl 'list-timers --all';
-    power_action('poweroff');
+    power_action('poweroff', keepconsole => skip_root_console_selection());
 }
 
 sub test_flags {
