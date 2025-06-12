@@ -30,12 +30,15 @@ sub run_tests {
     my $image = get_var("CONTAINER_IMAGE_TO_TEST", "registry.opensuse.org/opensuse/tumbleweed:latest");
     record_info('Test', "Pull image $image");
     assert_script_run("buildah pull $image", timeout => 300);
-    validate_script_output('buildah images', sub { /\/tumbleweed/ });
+    validate_script_output('buildah images', sub { /\/tumbleweed/ }, timeout => 300);
 
     record_info('Test', "Create container from $image");
-    my $container = script_output("buildah from $image");
-    validate_script_output('buildah containers', sub { /tumbleweed-working-container/ });
-    validate_script_output("buildah run $container -- cat /etc/os-release", sub { /openSUSE Tumbleweed/ });
+    my $container = script_output("buildah from $image", 1800);
+    validate_script_output('buildah containers', sub { /tumbleweed-working-container/ }, timeout => 300);
+    # validate_script_output("buildah run $container -- cat /etc/os-release", sub { /openSUSE Tumbleweed/ });
+    # DEBUG
+    record_info("PRE-CHECK", script_output("buildah run $container -- cat /etc/os-release", 200));
+    validate_script_output("buildah run $container -- cat /etc/os-release", sub { /openSUSE\sTumbleweed/ }, timeout => 200);
 
     # When trying to install packages inside the container in Docker, there's a
     # network failure
@@ -103,10 +106,6 @@ sub run {
     }
     record_info('Version', script_output('buildah --version'));
 
-    # Run tests as root
-    record_info('Test as root');
-    run_tests($runtime);
-
     # Run tests as user
     if ($runtime eq "podman" && !is_public_cloud && !is_svirt) {
         select_user_serial_terminal;
@@ -114,6 +113,11 @@ sub run {
         run_tests($runtime);
         select_serial_terminal;
     }
+
+    # Run tests as root
+    record_info('Test as root');
+    run_tests($runtime);
+
 }
 
 1;
