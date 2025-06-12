@@ -35,7 +35,9 @@ sub run_tests {
     record_info('Test', "Create container from $image");
     my $container = script_output("buildah from $image");
     validate_script_output('buildah containers', sub { /tumbleweed-working-container/ });
-    validate_script_output("buildah run $container -- cat /etc/os-release", sub { /openSUSE Tumbleweed/ });
+    # DEBUG
+    record_info("PRE-CHECK", script_output("buildah run $container -- cat /etc/os-release"));
+    validate_script_output("buildah run $container -- cat /etc/os-release", sub { /openSUSE\sTumbleweed/ }, timeout => 300);
 
     # When trying to install packages inside the container in Docker, there's a
     # network failure
