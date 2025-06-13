@@ -26,6 +26,8 @@ use Utils::Backends qw(is_svirt);
 
 sub run_tests {
     my $runtime = shift;
+    record_info('Test as user', "user: " . $testapi::username);
+    record_info('Test pre-check', script_output("buildah info", timeout => 300));
 
     my $image = get_var("CONTAINER_IMAGE_TO_TEST", "registry.opensuse.org/opensuse/tumbleweed:latest");
     record_info('Test', "Pull image $image");
@@ -35,8 +37,7 @@ sub run_tests {
     record_info('Test', "Create container from $image");
     my $container = script_output("buildah from $image", 1800);
     validate_script_output('buildah containers', sub { /tumbleweed-working-container/ }, timeout => 300);
-    # validate_script_output("buildah run $container -- cat /etc/os-release", sub { /openSUSE Tumbleweed/ });
-    # DEBUG
+
     record_info("PRE-CHECK", script_output("buildah run $container -- cat /etc/os-release", 200));
     validate_script_output("buildah run $container -- cat /etc/os-release", sub { /openSUSE\sTumbleweed/ }, timeout => 200);
 
@@ -106,17 +107,16 @@ sub run {
     }
     record_info('Version', script_output('buildah --version'));
 
+    # Run tests as root
+    run_tests($runtime);
+
     # Run tests as user
     if ($runtime eq "podman" && !is_public_cloud && !is_svirt) {
         select_user_serial_terminal;
-        record_info('Test as user');
         run_tests($runtime);
         select_serial_terminal;
     }
 
-    # Run tests as root
-    record_info('Test as root');
-    run_tests($runtime);
 
 }
 
