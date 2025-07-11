@@ -26,7 +26,9 @@ our @EXPORT = qw(install_kernel_debuginfo prepare_for_kdump
 sub determine_kernel_debuginfo_package {
     # Using the provided capabilities of the currently active kernel, get the
     # name and version of the shortest flavor and add "-debuginfo" to the name.
-    return script_output('rpm -qf /boot/initrd-$(uname -r) --provides | awk \'match($0,/(kernel-.+)\(.+\) = (.+)/,m) {printf "%d %s-debuginfo-%s\n", length($0), m[1], m[2]}\' | sort -n | head -n1 | cut -d" " -f2-');
+    my $pkg = script_output('rpm -qf /boot/initrd-$(uname -r) --provides');
+    diag "Package: " . $pkg;
+    return script_output('echo \'$pkg\' | awk \'match($0,/(kernel-.+)\(.+\) = (.+)/,m) {printf "%d %s-debuginfo-%s\n", length($0), m[1], m[2]}\' | sort -n | head -n1 | cut -d" " -f2-');
 }
 
 my $install_debug_info_timeout = 4000;
