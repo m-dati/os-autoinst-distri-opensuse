@@ -25,8 +25,11 @@
       <li><a href="#set_nics_link_speed_duplex">set_nics_link_speed_duplex</a></li>
       <li><a href="#check_connectivity_to_host_with_retry">check_connectivity_to_host_with_retry</a></li>
       <li><a href="#get_nics">get_nics</a></li>
+      <li><a href="#is_systemd_networkd_used">is_systemd_networkd_used</a></li>
       <li><a href="#is_nm_used">is_nm_used</a></li>
       <li><a href="#is_wicked_used">is_wicked_used</a></li>
+      <li><a href="#is_running_in_isolated_network">is_running_in_isolated_network</a></li>
+      <li><a href="#get_default_dns">get_default_dns</a></li>
     </ul>
   </li>
 </ul><h1>lib/network_utils.pm</h1>
@@ -114,6 +117,13 @@
 
 <pre><code>get_nics([&#39;bond0&#39;, &#39;bond1&#39;]);</code></pre>
 
+<h2 id="is_systemd_networkd_used">is_systemd_networkd_used</h2>
+
+<pre><code>Check if systemd-networkd service is active.
+
+This function checks if the systemd-networkd service is currently active on the system.
+It returns true (0) if the service is active, otherwise false (1).</code></pre>
+
 <h2 id="is_nm_used">is_nm_used</h2>
 
 <pre><code>Check if NetworkManager service is active.</code></pre>
@@ -121,6 +131,20 @@
 <h2 id="is_wicked_used">is_wicked_used</h2>
 
 <pre><code>Check if wicked service is active.</code></pre>
+
+<h2 id="is_running_in_isolated_network">is_running_in_isolated_network</h2>
+
+<p>Checks if the test is running in an isolated network environment.</p>
+
+<p>This function determines if the test is running in an isolated network setup by checking the network type and NIC VLAN configuration.</p>
+
+<pre><code>is_running_in_isolated_network();</code></pre>
+
+<h2 id="get_default_dns">get_default_dns</h2>
+
+<p>Returns the default DNS servers based on the OPENQA_HOSTNAME environment variable. This function checks the OPENQA_HOSTNAME variable to determine which DNS servers to return. If the hostname matches a specific pattern, it returns a predefined set of private or public DNS servers.</p>
+
+<pre><code>get_default_dns();</code></pre>
 
 
 </body>

@@ -40,11 +40,13 @@
       <li><a href="#expand_agama_profile">expand_agama_profile</a></li>
       <li><a href="#generate_json_profile">generate_json_profile</a></li>
       <li><a href="#upload_profile">upload_profile</a></li>
+      <li><a href="#create_file_as_profile_companion">create_file_as_profile_companion</a></li>
       <li><a href="#inject_registration">inject_registration</a></li>
       <li><a href="#test_ayp_url">test_ayp_url</a></li>
       <li><a href="#get_test_data_files-get_test_data-dir_relative_path">get_test_data_files get_test_data($dir_relative_path)</a></li>
       <li><a href="#prepare_ay_file">prepare_ay_file</a></li>
       <li><a href="#generate_xml">generate_xml</a></li>
+      <li><a href="#parse_dud_parameter">parse_dud_parameter</a></li>
     </ul>
   </li>
 </ul><h1>lib/autoyast.pm</h1>
@@ -304,6 +306,13 @@ $profile is the AutoYaST profile &#39;autoinst.xml&#39;
 $path is the path of the AutoYaST profile or one of the xml files when
 using rules and classes.</code></pre>
 
+<h2 id="create_file_as_profile_companion">create_file_as_profile_companion</h2>
+
+<pre><code>create_file_as_profile_companion()
+
+It gets the content of the file dummy.xml
+and puts it in the same path as the jsonnet profile</code></pre>
+
 <h2 id="inject_registration">inject_registration</h2>
 
 <pre><code>inject_registration($profile);
@@ -338,6 +347,13 @@ using rules and classes.</code></pre>
 <p>Get maintenance updates addons Generate one xml file Get values from MAINT_TEST_REPO Return string with xml format</p>
 
 <pre><code>$addons is maintenance updates URL</code></pre>
+
+<h2 id="parse_dud_parameter">parse_dud_parameter</h2>
+
+<pre><code>parse_dud_parameter();
+
+Process DUD raw value (comma separated)
+Return a string of inst.dud well formed parameters</code></pre>
 
 
 </body>
