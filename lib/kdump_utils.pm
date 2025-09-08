@@ -465,8 +465,35 @@ sub check_function {
         my $vmlinux_glob = (is_sle("<16") || is_sle_micro("<6.0") || is_leap("<16.0"))
           ? '/boot/vmlinux-$(uname -r)*'
           : '/usr/lib/modules/$(uname -r)/vmlinux*';
+        ### MD
+        # extract dir. path
+        my $vmlinux_dir = $1 if ($vmlinux_glob =~ m{(.*)/[^/]*$});
+        # check glob expression output
+        assert_script_run "ls $vmlinux_glob";
+        my $vmlinux_glob_xz = script_output("ls -1t $vmlinux_glob | grep -F '.xz'| head -n1", proceed_on_failure => 1);
+        set_var('KERNEL_XZ', '') unless ($vmlinux_glob_xz);
+        if (check_var('KERNEL_XZ', 'xz')) {
+            # uses .xz
+            $vmlinux_glob = $vmlinux_glob_xz;
+        }
+        elsif (check_var('KERNEL_XZ', 'unxz')) {
+            # uncompress .xz
+            assert_script_run("unxz -k $vmlinux_glob_xz");
+            $vmlinux_glob_xz = script_output("ls -1t $vmlinux_dir/vmlinux* | grep -vF '.xz'| head -n1", proceed_on_failure => 1);
+            $vmlinux_glob = $vmlinux_glob_xz if ($vmlinux_glob_xz);
+        }
+        elsif (check_var('KERNEL_XZ', 'map') && !is_transactional) {
+            # Use /boot/System.map as the mapfile with .xz
+            $vmlinux_glob = "-S " . script_output("ls -1t /boot/System.map") . " -f " . $vmlinux_glob_xz;
+        }
+        # check non-xz kernel
+        elsif (my $vmlinux_tmp = script_output("ls -1t $vmlinux_dir/vmlinux* | grep -vF '.xz'| head -n1", proceed_on_failure => 1)) {
+            # use existing kernel
+            $vmlinux_glob = $vmlinux_tmp;
+        }
+        ###
         if (!is_transactional) {
-            $crash_cmd = "echo exit | crash `ls -1t $vmcore_glob | head -n1` $vmlinux_glob";
+            $crash_cmd = "echo exit | crash $vmlinux_glob `ls -1t $vmcore_glob | head -n1`";
         }
         elsif (!get_var('SKIP_KERNEL_DEBUGINFO')) {
             my $vmcore = script_output("ls -1t $vmcore_glob");
@@ -478,6 +505,8 @@ sub check_function {
             my $bash_cmd = "$zypper_call && $crash_call";
             $crash_cmd = "podman container run --privileged -v '/:/host' registry.opensuse.org/opensuse/tumbleweed bash -c '$bash_cmd'";
         }
+        script_run("ls -l $vmlinux_dir");
+        record_info("CHECK CRASH", "Command: " . $crash_cmd . "\nPre-checks:\n" . script_output("file $vmlinux_glob $vmcore_glob; file $vmlinux_dir/vmlinu*"));
         validate_script_output $crash_cmd, sub { m/PANIC:\s([^\s]+)/ }, is_aarch64 ? 1200 : 800 if $crash_cmd;
     }
     else {
