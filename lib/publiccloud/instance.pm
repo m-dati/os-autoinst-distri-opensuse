@@ -923,14 +923,18 @@ sub upload_supportconfig_log {
     # to exclude nothings, set "-"
     my $exclude = get_var('SUPPORTCONFIG_EXCLUDE', 'AUDIT');
     $exclude = ($exclude =~ s/[-\s]+//gr) ? '-x ' . $exclude : '';
+    my $timeout = 600;
+    my $start = time();
     my $log = "/var/tmp/scc_supportconfig";
-    my $cmd = "timeout --preserve-status 900 sudo supportconfig -R " . dirname($log) . " -B supportconfig $exclude";
+    my $options = "-w -s -T 240 -R " . dirname($log) . " -B supportconfig $exclude";
+    my $cmd = "timeout --preserve-status $timeout sudo supportconfig $options";
     record_info('supportconfig start', "start time: " . localtime());
-    my $err = $self->ssh_script_run(cmd => "$cmd", timeout => 960, proceed_on_failure => 1);
-    $self->ssh_script_run(cmd => "ls -l " . dirname($log) . "; [ -f $log.txz ] || sudo tar -cv -f $log.txz -J $log; sudo chmod 0644 $log.txz", proceed_on_failure => 1);
-    $cmd = ($err) ? "Stopped at " . localtime() . ", Partial Log" : "Completed at " . localtime() . ", Log";
-    $self->upload_log("$log.txz", failok => 1, timeout => 900);
-    record_info('supportconfig end', "$cmd $log.txz", result => ($err) ? 'fail' : 'ok');
+    # poo#187440: send '\n' in ssh supportconfig to continue SELinux pause in SLE-M 6.0
+    my $err = $self->ssh_script_run(cmd => 'printf "\n"|$cmd', timeout => ($timeout + 60), proceed_on_failure => 1);
+    $err &&= $self->ssh_script_run(cmd => "ls -l " . dirname($log) . "; [ -f $log.txz ] || sudo tar -cv -f $log.txz -J $log; [ -f $log.txz ] && sudo chmod 0644 $log.txz || fail;", proceed_on_failure => 1);
+    my $msg = ($err) ? "Stopped after " . (time() - $start) . "/$timeout s., Partial Log" : "Completed after " . (time() - $start) . "sec., Log";
+    $self->upload_log("$log.txz", failok => 1, timeout => $timeout) unless ($err);
+    record_info('supportconfig end', "$msg $log.txz", result => ($err) ? 'fail' : 'ok');
 }
 
 sub wait_for_state {
