@@ -920,19 +920,19 @@ sub do_systemd_analyze_time {
 sub upload_supportconfig_log {
     my ($self, %args) = @_;
     return unless (get_var('SUPPORTCONFIG_LOG', 1));
+    my $log = "/var/tmp/scc_supportconfig";
+    my $timeout = 600;
+    my $start = time();
     # to exclude nothings, set "-"
     my $exclude = get_var('SUPPORTCONFIG_EXCLUDE', 'AUDIT');
     $exclude = ($exclude =~ s/[-\s]+//gr) ? '-x ' . $exclude : '';
-    my $timeout = 600;
-    my $start = time();
-    my $log = "/var/tmp/scc_supportconfig";
-    my $options = "-w -s -T 240 -R " . dirname($log) . " -B supportconfig $exclude";
-    my $cmd = "timeout --preserve-status $timeout sudo supportconfig $options";
+    my $options = "-R " . dirname($log) . " -B supportconfig $exclude";
+    my $cmd = "printf '\\n' | timeout --preserve-status $timeout sudo supportconfig $options";
     record_info('supportconfig start', "start time: " . localtime());
     # poo#187440: send '\n' in ssh supportconfig to continue SELinux pause in SLE-M 6.0
-    my $err = $self->ssh_script_run(cmd => 'printf "\n"|$cmd', timeout => ($timeout + 60), proceed_on_failure => 1);
-    $err &&= $self->ssh_script_run(cmd => "ls -l " . dirname($log) . "; [ -f $log.txz ] || sudo tar -cv -f $log.txz -J $log; [ -f $log.txz ] && sudo chmod 0644 $log.txz || fail;", proceed_on_failure => 1);
-    my $msg = ($err) ? "Stopped after " . (time() - $start) . "/$timeout s., Partial Log" : "Completed after " . (time() - $start) . "sec., Log";
+    my $err = $self->ssh_script_run(cmd => "$cmd", timeout => ($timeout + 60), proceed_on_failure => 1);
+    my $err2 = $self->ssh_script_run(cmd => "ls -l " . dirname($log) . "; ([ -f $log.txz ] || sudo tar -cv -f $log.txz -J $log); ([ -f $log.txz ] && sudo chmod 0644 $log.txz || fail)", proceed_on_failure => 1);
+    my $msg = ($err || $err2) ? "stop/error after " . (time() - $start) . "/$timeout s., Partial Log" : "Completed ok after " . (time() - $start) . "sec., Log";
     $self->upload_log("$log.txz", failok => 1, timeout => $timeout) unless ($err);
     record_info('supportconfig end', "$msg $log.txz", result => ($err) ? 'fail' : 'ok');
 }
