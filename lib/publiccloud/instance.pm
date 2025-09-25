@@ -18,6 +18,7 @@ use Utils::Backends qw(set_sshserial_dev unset_sshserial_dev);
 use publiccloud::ssh_interactive qw(ssh_interactive_tunnel ssh_interactive_leave select_host_console);
 use version_utils;
 use utils;
+use publiccloud::instances;
 # for boottime checks
 use db_utils;
 use Mojo::Util 'trim';
@@ -484,8 +485,13 @@ sub wait_for_ssh {
                     ++$retry;
                 }    # endif
                 sleep $delay;
+                # ONLY FOR DEBUGGING: EARLY EXIT WHEN TAKING LONGER
+                last if ($duration > 60 && get_var('_VRONLY'));
             }    # end loop
         }    # endif
+
+        # ONLY FOR DEBUGGING: FAKE ERROR ON-PURPOSE
+        $exit_code = 3 if (get_var('_VRONLY'));
 
         if ($args{scan_ssh_host_key}) {
             record_info('RESCAN', 'Rescanning SSH host key');
@@ -533,6 +539,8 @@ sub wait_for_ssh {
     $instance_msg .= "\nRetries on failure: $retry" if ($retry);
     # $sysout is not available if $args{systemup_check} is 0
     record_info("WAIT CHECK:" . isok($exit_code), $instance_msg, result => (defined($sysout) && $sysout =~ m/\sfailed\s/) ? "fail" : "ok");
+    # ONLY FOR DEBUGGING:
+    record_info('WAIT XX', '_VR_self: ' . "\n" . Dumper($self)) if (get_var('_VRONLY'));
 
     # OK
     return $duration if (!$exit_code && !$args{wait_stop} || $exit_code && $args{wait_stop});

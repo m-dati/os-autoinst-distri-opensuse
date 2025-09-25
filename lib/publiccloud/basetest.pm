@@ -134,6 +134,10 @@ sub finalize {
             diag($local_text);
         }
         # check Instance
+        if (!$self->{run_args}->{my_instance} && publiccloud::instances::get_instance()) {
+            $self->{run_args}->{my_instance} = publiccloud::instances::get_instance();
+        }
+        #
         if ($self->{run_args}->{my_instance}) {
             my $dumpable_instance = Storable::dclone($self->{run_args}->{my_instance});
             $dumpable_instance->{provider}->{provider_client}->{credentials_file_content} = '******';
@@ -149,6 +153,10 @@ sub finalize {
         record_info('FAILED finalize', $start_text, result => 'fail');
         diag($start_text . 'Probably early errors/faults.');
     }
+
+    # ONLY FOR DEBUGGING:
+    record_info($start_text, '_VR_: ' . "\n" . Dumper($self)) if (get_var('_VRONLY'));
+
     # currently we have two cases when teardown of instance will be skipped:
     # 1. Job should have 'PUBLIC_CLOUD_NO_TEARDOWN' variable
     if (get_var('PUBLIC_CLOUD_NO_TEARDOWN')) {
