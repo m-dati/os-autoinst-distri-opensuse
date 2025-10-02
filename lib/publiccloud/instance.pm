@@ -926,10 +926,16 @@ sub upload_supportconfig_log {
     my $logs = "/var/tmp/scc_supportconfig";
     # poo#187440 Workaround applied inject newline in ssh supportconfig to prevent hang cases, while bsc#1250310 open
     my $cmd = "echo | timeout $timeout sudo supportconfig -R " . dirname($logs) . " -B supportconfig -x AUDIT";
-    my $err = $self->ssh_script_run(cmd => $cmd, timeout => ($timeout + 60), proceed_on_failure => 1);
-    $self->ssh_script_run(cmd => "sudo chmod 0644 $logs.txz", proceed_on_failure => 1);
+    my $err = $self->ssh_script_run(cmd => $cmd, timeout => 0, proceed_on_failure => 1);
+    $err //= -1;    # convert undef to number
+    unless ($err == 0) {
+        record_info('FAILED supportconfig', 'Failed after: ' . (time() - $start) . 'sec.');
+        return;
+    }
+    $self->ssh_script_run(cmd => "sudo chmod 0644 $logs.txz", timeout => 0, proceed_on_failure => 1);
     $self->upload_log("$logs.txz", failok => 1, timeout => $timeout);
-    record_info('supportconfig done', ($err) ? 'Failed after ' . time() - $start . "sec." : "OK Log $logs.txz", result => ($err) ? 'fail' : 'ok');
+    record_info('supportconfig done', "OK Log $logs.txz");
+    return 1;
 }
 
 sub wait_for_state {
@@ -943,6 +949,21 @@ sub wait_for_state {
         sleep 15;
     }
     die("The instance state is not '$state' but '$current' instead.");
+}
+
+=head2 ssh_check
+
+    ssh_check(host)
+
+Execute a 'nc' connection check on SUT to ssh port of the remote ip4/host; returns true on exit 0.
+=cut
+
+sub ssh_is_ok {
+    my ($self, $host) = @_;
+    return unless ($host);
+    my $ret = script_run("nc -4 -z -w 10 $host 22", proceed_on_failure => 1, quiet => 1);
+    $ret //= -1;
+    return ($ret == 0);
 }
 
 1;
