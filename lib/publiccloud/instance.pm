@@ -921,15 +921,24 @@ sub do_systemd_analyze_time {
 
 sub upload_supportconfig_log {
     my ($self, %args) = @_;
-    my $timeout = 600;
+    my $timeout = 2700;
     my $start = time();
     my $logs = "/var/tmp/scc_supportconfig";
     # poo#187440 Workaround applied inject newline in ssh supportconfig to prevent hang cases, while bsc#1250310 open
-    my $cmd = "echo | timeout $timeout sudo supportconfig -R " . dirname($logs) . " -B supportconfig -x AUDIT";
-    my $err = $self->ssh_script_run(cmd => $cmd, timeout => ($timeout + 60), proceed_on_failure => 1);
-    $self->ssh_script_run(cmd => "sudo chmod 0644 $logs.txz", proceed_on_failure => 1);
+    my $cmd = "printf '\\n' | timeout -k 10 $timeout sudo supportconfig -R " . dirname($logs) . " -B supportconfig -x AUDIT,UP";
+    my $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+    $chk //= -1;
+    record_info("supportconfig-chk 2", "/root/terraform:" . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
+
+    my $err = $self->ssh_script_output($cmd, timeout => ($timeout + 300), proceed_on_failure => 1);
+    unless ($err =~ /Creating Tar Ball/) {
+        record_info('FAILED supportconfig', 'Failed after: ' . (time() - $start) . "sec.\n $err");
+        return;
+    }
+    $self->ssh_script_run(cmd => "sudo chmod 0644 $logs.txz", timeout => 0, proceed_on_failure => 1);
     $self->upload_log("$logs.txz", failok => 1, timeout => $timeout);
-    record_info('supportconfig done', ($err) ? 'Failed after ' . time() - $start . "sec." : "OK Log $logs.txz", result => ($err) ? 'fail' : 'ok');
+    record_info('supportconfig done', "OK Log $logs.txz\n $err");
+    return 1;
 }
 
 sub wait_for_state {

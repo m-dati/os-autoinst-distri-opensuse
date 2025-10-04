@@ -116,7 +116,7 @@ sub finalize {
 
     my $flags = $self->test_flags();
     my $upload;
-
+    my $chk;
     diag($start_text . '$flags->{publiccloud_multi_module}=' . $flags->{publiccloud_multi_module}) if ($flags->{publiccloud_multi_module});
     diag($start_text . '$flags->{fatal}=' . $flags->{fatal}) if ($flags->{fatal});
     diag($start_text . '$self->{result}=' . $self->{result}) if ($self->{result});
@@ -162,7 +162,9 @@ sub finalize {
         }
         return $ret;
     }
-    diag($start_text . '1st check passed.');
+    $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+    $chk //= -1;
+    diag($start_text . '1st check passed.' . ($chk) . "\n");
 
     # 2. Test module needs to have 'publiccloud_multi_module' flag and should not have 'fatal' flag and 'fail' result
     #   * In case the test does not have 'publiccloud_multi_module' flag we don't expect anything else running after it.
@@ -182,8 +184,14 @@ sub finalize {
         my $ret = $self->_upload_logs();
         record_info('FAILED upload_logs', $start_text . "Failed _upload_logs (ref.: \$self->_upload_logs) --\n $@")
           unless (defined($ret));
+        # DEBUG:
+        diag($start_text . "Post upload_logs: instance\n" . Dumper($self->{run_args}->{my_instance}->{instance_id}));
     }
     # We need $self->{run_args} and $self->{run_args}->{my_provider}
+    $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+    $chk //= -1;
+    record_info($start_text, 'dir 4:' . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
+
     if ($self->{run_args}->{my_provider}) {
         diag($start_text . 'Ready for provider teardown.');
         # Call the provider teardown
@@ -196,6 +204,9 @@ sub finalize {
         diag($start_text . 'Not ready for provider teardown.');
         return;
     }
+    $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1);
+    $chk //= -1;
+    record_info($start_text, 'dir 5:' . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
     # finalize completed
     return 1;
 }
@@ -204,7 +215,7 @@ sub _upload_logs {
     my ($self) = @_;
     my $ssh_sut_log = '/var/tmp/ssh_sut.log';
     my $start_text = 'Public Cloud _upload_logs: ';
-
+    my $chk;
     diag($start_text . 'start:') if ($self->{run_args});
     script_run("sudo chmod a+r " . $ssh_sut_log);
     upload_logs($ssh_sut_log, failok => 1, log_name => $ssh_sut_log . ".txt");
@@ -213,11 +224,19 @@ sub _upload_logs {
         diag($start_text . 'Valid instance $self->{run_args}->{my_instance};');
         my @instance_logs = ('/var/log/cloudregister', '/etc/hosts', '/var/log/zypper.log', '/etc/zypp/credentials.d/SCCcredentials');
         for my $instance_log (@instance_logs) {
+            my $check = $self->{run_args}->{my_instance}->ssh_script_run("[ -e $instance_log ]", timeout => 0, quiet => 1, proceed_on_failure => 1);
+            $check //= -1;
+            record_info("log chk", "$start_text Log $instance_log exit:($check)");
             $self->{run_args}->{my_instance}->ssh_script_run("sudo chmod a+r " . $instance_log, timeout => 0, quiet => 1, proceed_on_failure => 1);
             $self->{run_args}->{my_instance}->upload_log($instance_log, failok => 1, log_name => $instance_log . ".txt");
+            diag($start_text . 'uploaded: ' . $instance_log);
         }
         # collect supportconfig logs
         $self->{run_args}->{my_instance}->upload_supportconfig_log();
+        $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+        $chk //= -1;
+        record_info($start_text, 'dir upl- 3:' . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
+        return 1;
     } else {
         diag($start_text . 'instance unavailable or run_args undefined (ref.: $self->{run_args}->{my_instance}). Possible that the test died before the instance was created.');
         return;
@@ -228,6 +247,7 @@ sub _upload_logs {
 
 sub post_fail_hook {
     my ($self) = @_;
+    diag('Post fail base start:' . $self->{finalize_called});
 
     if (get_var('PUBLIC_CLOUD_SLES4SAP')) {
         # This is called explicitly to avoid cyclical imports
@@ -244,6 +264,7 @@ sub post_fail_hook {
 
 sub post_run_hook {
     my ($self) = @_;
+    diag('Post run base start:' . $self->{finalize_called});
     if (get_var('PUBLIC_CLOUD_SLES4SAP')) {
         # SAP/HA Public Cloud test case uses its own cleanup procedure (for example: loadtest qesap_cleanup.pm)
         return;

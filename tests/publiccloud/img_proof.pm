@@ -15,6 +15,7 @@ use Mojo::JSON;
 use publiccloud::utils qw(is_ondemand is_hardened);
 use publiccloud::ssh_interactive 'select_host_console';
 use File::Basename 'basename';
+use Data::Dumper;
 
 sub patch_json {
     my ($file) = @_;
@@ -146,7 +147,8 @@ sub run {
     eval { analyze_results($log, $img_proof->{output}, $self->{extra_test_results}) };
 
     assert_script_run('rm -rf img_proof_results');
-
+    # DEBUG:
+    diag("Pre check fail: img_proof->{fail}:(" . $img_proof->{fail} . ")\n");
     # fail, if at least one test failed
     if ($img_proof->{fail} > 0) {
         $instance->run_ssh_command(cmd => 'rpm -qa > /tmp/rpm_qa.txt', no_quote => 1);
