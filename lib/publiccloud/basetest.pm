@@ -162,7 +162,7 @@ sub finalize {
         }
         return $ret;
     }
-    $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+    $chk = script_run("sudo [ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
     $chk //= -1;
     diag($start_text . '1st check passed.' . ($chk) . "\n");
 
@@ -188,7 +188,7 @@ sub finalize {
         diag($start_text . "Post upload_logs: instance\n" . Dumper($self->{run_args}->{my_instance}->{instance_id}));
     }
     # We need $self->{run_args} and $self->{run_args}->{my_provider}
-    $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+    $chk = script_run("sudo [ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
     $chk //= -1;
     record_info($start_text, 'dir 4:' . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
 
@@ -204,7 +204,7 @@ sub finalize {
         diag($start_text . 'Not ready for provider teardown.');
         return;
     }
-    $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1);
+    $chk = script_run("sudo [ -d /root/terraform ]", proceed_on_failure => 1);
     $chk //= -1;
     record_info($start_text, 'dir 5:' . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
     # finalize completed
@@ -233,7 +233,7 @@ sub _upload_logs {
         }
         # collect supportconfig logs
         $self->{run_args}->{my_instance}->upload_supportconfig_log();
-        $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+        $chk = script_run("sudo [ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
         $chk //= -1;
         record_info($start_text, 'dir upl- 3:' . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
         return 1;

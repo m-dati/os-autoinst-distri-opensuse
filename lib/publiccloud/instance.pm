@@ -926,7 +926,7 @@ sub upload_supportconfig_log {
     my $logs = "/var/tmp/scc_supportconfig";
     # poo#187440 Workaround applied inject newline in ssh supportconfig to prevent hang cases, while bsc#1250310 open
     my $cmd = "printf '\\n' | timeout -k 10 $timeout sudo supportconfig -R " . dirname($logs) . " -B supportconfig -x AUDIT,UP";
-    my $chk = script_run("[ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
+    my $chk = script_run("sudo [ -d /root/terraform ]", proceed_on_failure => 1, timeout => 0);
     $chk //= -1;
     record_info("supportconfig-chk 2", "/root/terraform:" . ($chk) . "\n", result => (($chk < 1) ? 'fail' : 'ok'));
 
