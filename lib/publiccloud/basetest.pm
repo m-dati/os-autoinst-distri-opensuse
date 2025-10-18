@@ -204,20 +204,24 @@ sub _upload_logs {
     my ($self) = @_;
     my $ssh_sut_log = '/var/tmp/ssh_sut.log';
     my $start_text = 'Public Cloud _upload_logs: ';
-
+    my $instance = $self->{run_args}->{my_instance};
     diag($start_text . 'start:') if ($self->{run_args});
     script_run("sudo chmod a+r " . $ssh_sut_log);
     upload_logs($ssh_sut_log, failok => 1, log_name => $ssh_sut_log . ".txt");
 
-    if ($self->{run_args} && $self->{run_args}->{my_instance}) {
+    if ($self->{run_args} && $instance) {
         diag($start_text . 'Valid instance $self->{run_args}->{my_instance};');
-        my @instance_logs = ('/var/log/cloudregister', '/etc/hosts', '/var/log/zypper.log', '/etc/zypp/credentials.d/SCCcredentials');
+        my @instance_logs = ('/var/log/cloudregister', '/etc/hosts', '/etc/fake_to_fail', '/var/log/zypper.log', '/etc/zypp/credentials.d/SCCcredentials');
         for my $instance_log (@instance_logs) {
-            $self->{run_args}->{my_instance}->ssh_script_run("sudo chmod a+r " . $instance_log, quiet => 1, proceed_on_failure => 1);
-            $self->{run_args}->{my_instance}->upload_log($instance_log, failok => 1, log_name => $instance_log . ".txt");
+            if ($instance->ssh_script_output("ls -l $instance_log", timeout => 90, proceed_on_failure => 1) =~ /^ls: cannot access/) {
+                record_info("Missing file", "Log file missing or wrong permissions: $instance_log", result => 'fail');
+                next;
+            }
+            $instance->ssh_script_run("sudo chmod a+r " . $instance_log, timeout => 0, quiet => 1);
+            $instance->upload_log($instance_log, failok => 1, log_name => $instance_log . ".txt");
         }
         # collect supportconfig logs, only when test failed:
-        $self->{run_args}->{my_instance}->upload_supportconfig_log() if ($self->{result} && $self->{result} eq 'fail');
+        $instance->upload_supportconfig_log() if ($self->{result} && $self->{result} eq 'fail');
     } else {
         diag($start_text . 'instance unavailable or run_args undefined (ref.: $self->{run_args}->{my_instance}). Possible that the test died before the instance was created.');
         return;
