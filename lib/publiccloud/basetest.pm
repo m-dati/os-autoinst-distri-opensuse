@@ -213,7 +213,9 @@ sub _upload_logs {
         diag($start_text . 'Valid instance $self->{run_args}->{my_instance};');
         my @instance_logs = ('/var/log/cloudregister', '/etc/hosts', '/etc/fake_to_fail', '/var/log/zypper.log', '/etc/zypp/credentials.d/SCCcredentials');
         for my $instance_log (@instance_logs) {
-            if ($instance->ssh_script_output("ls -l $instance_log", timeout => 90, proceed_on_failure => 1) =~ /^ls: cannot access/) {
+            my $ret = $instance->run_ssh_command("sudo ls $instance_log", rc_only => 1);
+            diag("_upload_logs: $instance_log = ($ret)");
+            if ($ret) {
                 record_info("Missing file", "Log file missing or wrong permissions: $instance_log", result => 'fail');
                 next;
             }
