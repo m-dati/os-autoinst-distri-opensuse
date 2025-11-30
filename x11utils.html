@@ -36,6 +36,7 @@
       <li><a href="#start_root_shell_in_xterm">start_root_shell_in_xterm</a></li>
       <li><a href="#x11_start_program_xterm">x11_start_program_xterm</a></li>
       <li><a href="#default_gui_terminal">default_gui_terminal {</a></li>
+      <li><a href="#close_gui_terminal">close_gui_terminal</a></li>
       <li><a href="#handle_gnome_activities">handle_gnome_activities</a></li>
     </ul>
   </li>
@@ -67,13 +68,13 @@
 
 <h2 id="handle_login">handle_login</h2>
 
-<pre><code>handle_login($myuser, $user_selected);</code></pre>
+<pre><code>handle_login(myuser =&gt; $myuser, user_selected =&gt; 1);</code></pre>
 
 <p>Log the user in using the displaymanager. When <code>$myuser</code> is set, this user will be used for login. Otherwise the function will default to <code>$username</code>. For displaymanagers (like gnome) where the user needs to be selected from a menu <code>$user_selected</code> tells the function that the desired user has already been selected before this function was called.</p>
 
 <p>Example:</p>
 
-<pre><code>handle_login(&#39;user1&#39;, 1);</code></pre>
+<pre><code>handle_login(myuser =&gt; &#39;user1&#39;, user_selected =&gt; 1);</code></pre>
 
 <h2 id="handle_logout">handle_logout</h2>
 
@@ -177,6 +178,12 @@
 <pre><code>default_gui_terminal()</code></pre>
 
 <p>Returns the default console to be used by test modules, defaults to xterm</p>
+
+<h2 id="close_gui_terminal">close_gui_terminal</h2>
+
+<pre><code>close_gui_terminal()</code></pre>
+
+<p>Closes the currently focused window, if its a terminal like kgx, it would handle the close window prompt</p>
 
 <h2 id="handle_gnome_activities">handle_gnome_activities</h2>
 
