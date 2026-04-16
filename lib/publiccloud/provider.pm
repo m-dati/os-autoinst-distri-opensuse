@@ -20,7 +20,6 @@ use Data::Dumper;
 use Mojo::JSON qw(decode_json encode_json);
 use utils qw(file_content_replace script_retry);
 use mmapi;
-use db_utils qw(is_ok_url);
 use version_utils qw(is_sle_micro);
 
 use constant TERRAFORM_DIR => get_var('PUBLIC_CLOUD_TERRAFORM_DIR', '/root/terraform');
@@ -379,29 +378,16 @@ sub create_instances {
     my ($self, %args) = @_;
     $args{check_connectivity} //= 1;
     my @vms = $self->terraform_apply(%args);
-    my $url = get_var('PUBLIC_CLOUD_PERF_DB_URI', 'http://larry.qe.suse.de:8086');
-
     foreach my $instance (@vms) {
         record_info("INSTANCE", $instance->{instance_id});
         if ($args{check_connectivity}) {
             # An error in VM-up causes test to stop
-            $instance->wait_for_ssh(timeout => $args{timeout},
+            $instance->wait_for_ssh(timeout => $args{timeout}, systemup_check => $args{systemup_check},
                 proceed_on_failure => $args{proceed_on_failure}, scan_ssh_host_key => 1);
         }
         $self->show_instance_details();
-
         # Performance data: boottime
-
-        if (is_ok_url($url)) {
-            local $@;
-            eval {
-                my $btime = $instance->measure_boottime($instance, 'first');
-                $instance->store_boottime_db($btime, $url);
-            };
-            record_info("WARN", "Boottime measures cannot be provided", result => 'fail') if ($@);
-        } else {
-            record_info("WARN", "Cannot connect url:" . $url, result => 'fail');
-        }
+        $instance->measure_boottime('first');
     }
     return @vms;
 }
