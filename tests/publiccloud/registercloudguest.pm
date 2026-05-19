@@ -131,12 +131,16 @@ sub run {
     }
 
     rotate_cloudregister_log($instance);
+
     new_registration($instance);
 
     test_container_runtimes($instance) if (is_sle('>=15-SP5'));
 
     rotate_cloudregister_log($instance);
-    force_new_registration($instance);
+    # registration pre-cleanup for re-registration
+    my $clean;
+    $clean = cleanup_registration($instance) if (check_var('PUBLIC_CLOUD_CHECK_CLOUDREGISTER_EXECUTED', '1'));
+    force_new_registration($instance, !$clean);
 
     rotate_cloudregister_log($instance);
     register_addons_in_pc($instance);
@@ -244,10 +248,18 @@ sub cleanup_instance {
     check_instance_unregistered($instance);
 }
 
-sub force_new_registration {
+sub cleanup_registration {
     my ($instance) = @_;
+    $instance->ssh_script_run(cmd => "sudo rm -rf /etc/zypp/repos.d/*.repo /etc/zypp/credentials.d/* /var/lib/[Cc]loud[Rr]egister/* /etc/zypp/credentials.d/*");
+    $instance->ssh_script_run(cmd => "sudo registercloudguest --clean | tee -a registercloudguest-clean.log 2>&1", timeout => 180);
+    record_info('CLEAN REG.', "Cleanup: registration data removed");
+    return 1;
+}
+
+sub force_new_registration {
+    my ($instance, $force) = @_;
     record_info('Forcing a new registration...');
-    $instance->ssh_script_retry(cmd => "sudo registercloudguest $regcode_param --force-new", timeout => 300, retry => 3, delay => 120);
+    $instance->ssh_script_retry(cmd => "sudo registercloudguest $regcode_param " . ($force ? '--force-new' : ''), timeout => 300, retry => 3, delay => 120);
     # https://progress.opensuse.org/issues/196370 workaround for a known issue on 15-SP5
     if (is_sle('=15-SP5')) {
         $instance->ssh_assert_script_run("sudo zypper update -y");
