@@ -47,7 +47,7 @@ sub rbm_set_window {
 
 #1 Test instant reboot
 sub check_strategy_instantly {
-    select_console('root-console');
+    # select_console('root-console');
     rbm_call "set-strategy instantly";
     trup_call "reboot ptf install" . rpmver('interactive');
     check_reboot_strategy_and_reboot();
@@ -56,7 +56,7 @@ sub check_strategy_instantly {
 
 #2 Test maint-window strategy
 sub check_strategy_maint_window {
-    select_console('root-console');
+    # select_console('root-console');
     rbm_call "set-strategy maint-window";
     # Trigger reboot during maint-window
     rbm_set_window '-5minutes', '20m';
@@ -81,6 +81,7 @@ sub run {
     select_serial_terminal;
 
     get_utt_packages;
+    select_console('root-console');
 
     record_info 'Instantly', 'Test instant reboot';
     check_strategy_instantly;
