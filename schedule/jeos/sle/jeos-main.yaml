@@ -58,9 +58,9 @@ schedule:
     - jeos/diskusage
     - jeos/build_key
     - console/prjconf_excluded_rpms
-    - console/journal_check
     - microos/libzypp_config
     - console/suseconnect_scc
+    - console/journal_check
     - console/pam
     - '{{maintenance}}'
     - '{{efi}}'
