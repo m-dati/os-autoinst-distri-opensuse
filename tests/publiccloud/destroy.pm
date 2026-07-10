@@ -20,6 +20,8 @@ sub run {
     select_host_console(force => 1);
 
     if ($instance) {
+        my ($res, $sysout) = $instance->system_check();
+        record_info("System check", "Result:\n$sysout\nCode: $res", result => ($res) ? 'softfail' : 'ok');
         upload_final_logs($instance);
         $provider->finalize_logging($instance);
     } else {
@@ -48,7 +50,6 @@ sub upload_final_logs {
     }
     $instance->upload_supportconfig_log();
 }
-
 
 sub test_flags {
     return {always_run => 1};
