@@ -957,4 +957,34 @@ sub wait_for_state {
     die("The instance state is not '$state' but '$current' instead.");
 }
 
+=head2 system_check
+
+Run via ssh the command `systemctl is-system-running` on a remote machine, 
+    to check the systemd status.
+
+Return: exit code,
+        command output, enriched with more informations when the code != 0.
+
+=cut
+
+sub system_check {
+    my ($self, %args) = @_;
+    my $t = $args{timeout} // 120;
+    my $p = $args{proceed_on_failure} // 1;
+    my $out;
+    # verify connection
+    my $res = $self->ssh_script_run(cmd => 'uptime', timeout => $t);
+    unless (isok($res)) {
+        $out = "Remote system problems.";
+    } else {
+        # exit code analysis
+        $res = $self->ssh_script_run(cmd => 'systemctl is-system-running', timeout => $t);
+        $out = (isok($res)) ? "System running!" :
+          $self->ssh_script_output(cmd => 'set -x; systemctl is-system-running; systemctl list-jobs; sudo systemctl --failed',
+            timeout => $t, proceed_on_failure => $p);
+    }
+    # result
+    return ($res, $out);
+}
+
 1;
