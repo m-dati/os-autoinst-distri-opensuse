@@ -20,6 +20,7 @@
       <li><a href="#"></a></li>
       <li><a href="#export_healthcheck_basic">export_healthcheck_basic</a></li>
       <li><a href="#select_log_console">select_log_console</a></li>
+      <li><a href="#cleanup_known_coredumps">cleanup_known_coredumps</a></li>
       <li><a href="#upload_coredumps">upload_coredumps</a></li>
       <li><a href="#export_logs">export_logs</a></li>
       <li><a href="#problem_detection">problem_detection</a></li>
@@ -75,11 +76,19 @@
 
 <p>Select &#39;log-console&#39; with higher timeout on screen check to even cover systems that react very slow due to high background load or high memory consumption. This should be especially useful in <code>post_fail_hook</code> implementations.</p>
 
+<h2 id="cleanup_known_coredumps">cleanup_known_coredumps</h2>
+
+<pre><code>cleanup_known_coredumps;</code></pre>
+
+<p>Remove known coredumps, following upload_coredumps in coredump_collect will fail on present unexpected coredump</p>
+
 <h2 id="upload_coredumps">upload_coredumps</h2>
 
 <pre><code>upload_coredumps(%args);</code></pre>
 
-<p>Upload all coredumps to logs. In case `proceed_on_failure` key is set to true, errors during logs collection will be ignored, which is usefull for the post_fail_hook calls.</p>
+<p>Upload all coredumps to logs.</p>
+
+<p>It only uploads present coredumps so in case of expected coredumps it&#39;s possible remove them from /var/lib/systemd/coredump/ to avoid processing them here.</p>
 
 <h2 id="export_logs">export_logs</h2>
 

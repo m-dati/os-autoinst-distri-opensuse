@@ -16,6 +16,7 @@
     <ul>
       <li><a href="#log_command_output">log_command_output</a></li>
       <li><a href="#export_credentials">export_credentials</a></li>
+      <li><a href="#check_credentials">check_credentials</a></li>
       <li><a href="#az_login">az_login</a></li>
       <li><a href="#create_sdaf_os_var_file">create_sdaf_os_var_file</a></li>
       <li><a href="#set_os_variable">set_os_variable</a></li>
@@ -31,20 +32,17 @@
       <li><a href="#sdaf_execute_remover">sdaf_execute_remover</a></li>
       <li><a href="#sdaf_cleanup">sdaf_cleanup</a></li>
       <li><a href="#sdaf_destroy_resources">sdaf_destroy_resources</a></li>
-      <li><a href="#sdaf_execute_playbook">sdaf_execute_playbook</a></li>
-      <li><a href="#sdaf_ansible_verbosity_level">sdaf_ansible_verbosity_level</a></li>
       <li><a href="#get_sdaf_instance_id">get_sdaf_instance_id</a></li>
-      <li><a href="#ansible_execute_command">ansible_execute_command</a></li>
-      <li><a href="#playbook_settings">playbook_settings</a></li>
-      <li><a href="#sdaf_register_byos">sdaf_register_byos</a></li>
       <li><a href="#sdaf_deployment_reused">sdaf_deployment_reused</a></li>
       <li><a href="#validate_components">validate_components</a></li>
       <li><a href="#get_fencing_mechanism">get_fencing_mechanism</a></li>
-      <li><a href="#get_workload_resource_group">get_workload_resource_group</a>
+      <li><a href="#get_sdaf_resource_group">get_sdaf_resource_group</a>
         <ul>
+          <li><a href="#collect_guestregister_logs">collect_guestregister_logs</a></li>
           <li><a href="#sdaf_upload_logs">sdaf_upload_logs</a></li>
         </ul>
       </li>
+      <li><a href="#apply_no_cleanup_tag">apply_no_cleanup_tag</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap/sap_deployment_automation_framework/deployment.pm</h1>
@@ -111,6 +109,14 @@ tee - writes output also into the log file</code></pre>
 <p>Exports Azure credentials retrieved from login server defined in. Please note that <b>get_credentials</b> function requires following OpenQA settings: PUBLIC_CLOUD_CREDENTIALS_URL PUBLIC_CLOUD_NAMESPACE _SECRET_PUBLIC_CLOUD_CREDENTIALS_USER _SECRET_PUBLIC_CLOUD_CREDENTIALS_PWD</p>
 
 <p>Credentials can be provided as well using openQA settings: _SECRET_AZURE_SDAF_APP_ID _SECRET_AZURE_SDAF_APP_PASSWORD _SECRET_AZURE_SDAF_TENANT_ID PUBLIC_CLOUD_AZURE_SUBSCRIPTION_ID</p>
+
+<h2 id="check_credentials">check_credentials</h2>
+
+<pre><code>check_credentials();</code></pre>
+
+<p>Check credentials: fetch keyvault secrets and compare them with openQA settings _SECRET_AZURE_SDAF_APP_ID (ARM_CLIENT_ID) _SECRET_AZURE_SDAF_APP_PASSWORD (ARM_CLIENT_SECRET) _SECRET_AZURE_SDAF_TENANT_ID (ARM_TENANT_ID) PUBLIC_CLOUD_AZURE_SUBSCRIPTION_ID (ARM_SUBSCRIPTION_ID)</p>
+
+<p>NOTE: In order to keep secrets hidden in autoinst-log.txt as well, this function needs to call export_credentials() to get the needed secrets/data directly, please do NOT set secrets related input parameters for check_credentials()</p>
 
 <h2 id="az_login">az_login</h2>
 
@@ -247,13 +253,16 @@ tee - writes output also into the log file</code></pre>
 
 <h2 id="sdaf_ssh_key_from_keyvault">sdaf_ssh_key_from_keyvault</h2>
 
-<pre><code>sdaf_ssh_key_from_keyvault(key_vault=&gt;$key_vault [, target_file=&gt;&#39;/path/to/glory/and_happiness&#39;]);</code></pre>
+<pre><code>sdaf_ssh_key_from_keyvault(key_vault=&gt;$key_vault [, query=&gt;&#39;sshkey&#39;, target_file=&gt;&#39;/path/to/glory/and_happiness&#39;]);</code></pre>
 
 <p>Retrieves public and private ssh key from specified keyvault and sets up permissions.</p>
 
 <ul>
 
 <li><p><b>key_vault</b>: Key vault name</p>
+
+</li>
+<li><p><b>query</b>: Query keyword, default &#39;sshkey&#39;, [&#39;sshkey&#39; | &#39;sid-sshkey&#39; | &#39;iscsi-sshkey&#39;]</p>
 
 </li>
 <li><p><b>target_file</b>: Full file path, where to write the public key. Default &#39;~/.ssh/id_rsa&#39;</p>
@@ -382,50 +391,6 @@ tee - writes output also into the log file</code></pre>
 </li>
 </ul>
 
-<h2 id="sdaf_execute_playbook">sdaf_execute_playbook</h2>
-
-<pre><code>sdaf_execute_playbook(
-    playbook_filename=&gt;&#39;playbook_04_00_01_db_ha.yaml&#39;,
-    sdaf_config_root_dir=&gt;&#39;/path/to/joy/and/happiness/&#39;
-    sap_sid=&gt;&#39;ABC&#39;,
-    timeout=&gt;&#39;42&#39;,
-    verbosity_level=&gt;&#39;3&#39;
-    );</code></pre>
-
-<p>Execute playbook specified by <b>playbook_filename</b> and record command output in separate log file. Verbosity level of <b>ansible-playbook</b> is controlled by openQA parameter <b>SDAF_ANSIBLE_VERBOSITY_LEVEL</b>. If undefined, it will use standard output without adding any <b>-v</b> flag. See function <b>sdaf_execute_playbook</b> for details.</p>
-
-<ul>
-
-<li><p><b>playbook_filename</b>: Filename of the playbook to be executed.</p>
-
-</li>
-<li><p><b>sdaf_config_root_dir</b>: SDAF Config directory containing SUT ssh keys</p>
-
-</li>
-<li><p><b>sap_sid</b>: SAP system ID. Default &#39;SAP_SID&#39;</p>
-
-</li>
-<li><p><b>timeout</b>: Timeout for executing playbook. Passed into asset_script_run. Default: 1800s</p>
-
-</li>
-<li><p><b>$verbosity_level</b>: Change default verbosity value by either anything equal to &#39;true&#39; or int between 1-6. Default: false</p>
-
-</li>
-</ul>
-
-<h2 id="sdaf_ansible_verbosity_level">sdaf_ansible_verbosity_level</h2>
-
-<pre><code>sdaf_ansible_verbosity_level($verbosity_level);</code></pre>
-
-<p>Returns string that is to be used as verbosity parameter <b>-v</b> for &#39;ansible-playbook&#39; command. This is controlled by positional argument <b>$verbosity_level</b>. Values can specify verbosity level using integer up to 6 (max supported by ansible) or just set to anything equal to <b>&#39;true&#39;</b> which will default to <b>-vvvv</b>. Value <b>-vvvv</b> should be enough to debug network connection problems according to ansible documentation: <a href="https://docs.ansible.com/ansible/latest/cli/ansible-playbook.html#cmdoption-ansible-playbook-v">https://docs.ansible.com/ansible/latest/cli/ansible-playbook.html#cmdoption-ansible-playbook-v</a></p>
-
-<ul>
-
-<li><p><b>$verbosity_level</b>: Change default verbosity value by either anything equal to &#39;true&#39; or int between 1-6. Default: false</p>
-
-</li>
-</ul>
-
 <h2 id="get_sdaf_instance_id">get_sdaf_instance_id</h2>
 
 <pre><code>get_sdaf_instance_id(pattern=&gt;[&#39;SCS&#39;, &#39;ERS&#39;, &#39;PAS&#39;]);</code></pre>
@@ -435,67 +400,6 @@ tee - writes output also into the log file</code></pre>
 <ul>
 
 <li><p><b>pattern</b>: SDAF SAP Central Services pattern</p>
-
-</li>
-</ul>
-
-<h2 id="ansible_execute_command">ansible_execute_command</h2>
-
-<pre><code>ansible_execute_command(
-    command=&gt;&#39;rm -Rf /&#39;, host_group=&gt;&#39;QES_SCS&#39;, sdaf_config_root_dir=&gt;&#39;/some/path&#39; , sap_sid=&gt;&#39;CAT&#39;);</code></pre>
-
-<p>Execute command on host group using ansible. Returns execution output.</p>
-
-<ul>
-
-<li><p><b>sdaf_config_root_dir</b>: SDAF Config directory containing SUT ssh keys</p>
-
-</li>
-<li><p><b>sap_sid</b>: SAP system ID. Default &#39;SAP_SID&#39;</p>
-
-</li>
-<li><p><b>host_group</b>: Host group name from inventory file</p>
-
-</li>
-<li><p><b>command</b>: Command to be executed</p>
-
-</li>
-<li><p><b>verbose</b>: verbose ansible output</p>
-
-</li>
-<li><p><b>proceed_on_failure</b>: proceed on failure setting</p>
-
-</li>
-</ul>
-
-<h2 id="playbook_settings">playbook_settings</h2>
-
-<pre><code>playbook_settings(components=&gt;[&#39;db_install&#39;, &#39;db_ha&#39;]);</code></pre>
-
-<p>Display simple command outputs from all DB hosts using <b>ansible</b> command.</p>
-
-<ul>
-
-<li><p><b>components</b>: <b>ARRAYREF</b> of components that should be installed</p>
-
-</li>
-</ul>
-
-<h2 id="sdaf_register_byos">sdaf_register_byos</h2>
-
-<pre><code>sdaf_register_byos(sdaf_config_root_dir=&gt;&#39;/stairway/to_heaven&#39;, scc_reg_code=&gt;&#39;CODE-XYZ&#39;, sap_sid=&#39;PRD&#39;);</code></pre>
-
-<p>Performs SCC registration on BYOS image using <b>registercloudguest</b> method.</p>
-
-<ul>
-
-<li><p><b>sdaf_config_root_dir</b>: SDAF root configuration directory</p>
-
-</li>
-<li><p><b>scc_reg_code</b>: SCC registration code</p>
-
-</li>
-<li><p><b>sap_sid</b>: SAP system ID</p>
 
 </li>
 </ul>
@@ -547,20 +451,29 @@ tee - writes output also into the log file</code></pre>
 </li>
 </ul>
 
-<h2 id="get_workload_resource_group">get_workload_resource_group</h2>
+<h2 id="get_sdaf_resource_group">get_sdaf_resource_group</h2>
 
-<pre><code>get_workload_resource_group(deployment_id=&gt;&#39;1234&#39;);</code></pre>
+<pre><code>get_sdaf_resource_group(deployment_id=&gt;&#39;1234&#39;, resource_group_type=&gt;&#39;workload_zone&#39;);</code></pre>
 
-<p>Finds and returns resource group belonging to the tests workload zone.</p>
+<p>Finds and returns resource group belonging to the test according to deployment type.</p>
 
 <p><b>Value conversion:</b></p>
 
 <ul>
 
-<li><p><b>deployment_id</b> =&gt; Test/deployment ID</p>
+<li><p><b>deployment_id</b>: Test/deployment ID</p>
+
+</li>
+<li><p><b>resource_group_type</b>: Type of resource group. Supported values: workload_zone, sap_system</p>
 
 </li>
 </ul>
+
+<h3 id="collect_guestregister_logs">collect_guestregister_logs</h3>
+
+<pre><code>collect_guestregister_logs()
+
+Collect and upload SDAF logs related to registercloudguest service.</code></pre>
 
 <h3 id="sdaf_upload_logs">sdaf_upload_logs</h3>
 
@@ -579,6 +492,22 @@ Collect and upload SDAF logs present and generated locally on SUT.</code></pre>
 
 </dd>
 </dl>
+
+<h2 id="apply_no_cleanup_tag">apply_no_cleanup_tag</h2>
+
+<pre><code>apply_no_cleanup_tag(resource_group=&gt;&#39;workload_zone&#39;, no_cleanup_tag=&gt;&#39;pc_ignore&#39;);</code></pre>
+
+<p>Checks resources inside <b>resource_group</b> for <b>SDAF_NO_CLEANUP_TAG</b> and applies one if missing.</p>
+
+<ul>
+
+<li><p><b>resource_group</b>: Resource group name</p>
+
+</li>
+<li><p><b>no_cleanup_tag</b>: Tag name</p>
+
+</li>
+</ul>
 
 
 </body>

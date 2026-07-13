@@ -29,6 +29,7 @@
       <li><a href="#is_sle_micro">is_sle_micro</a></li>
       <li><a href="#is_micro">is_micro</a></li>
       <li><a href="#is_alp">is_alp</a></li>
+      <li><a href="#is_aeon">is_aeon</a></li>
       <li><a href="#is_selfinstall">is_selfinstall</a></li>
       <li><a href="#is_tumbleweed">is_tumbleweed</a></li>
       <li><a href="#is_slowroll">is_slowroll</a></li>
@@ -43,6 +44,7 @@
       <li><a href="#is_rt">is_rt</a></li>
       <li><a href="#is_hpc">is_hpc</a></li>
       <li><a href="#is_wsl">is_wsl</a></li>
+      <li><a href="#is_dualboot">is_dualboot</a></li>
       <li><a href="#is_released">is_released</a></li>
       <li><a href="#is_staging">is_staging</a></li>
       <li><a href="#is_storage_ng">is_storage_ng</a></li>
@@ -66,7 +68,6 @@
       <li><a href="#check_os_release">check_os_release</a></li>
       <li><a href="#verify_os_version">verify_os_version</a></li>
       <li><a href="#is_public_cloud">is_public_cloud</a></li>
-      <li><a href="#is_openstack">is_openstack</a></li>
       <li><a href="#is_leap_migration">is_leap_migration</a></li>
       <li><a href="#is_tunneled">is_tunneled</a></li>
       <li><a href="#is_community_jeos">is_community_jeos</a></li>
@@ -82,6 +83,7 @@
       <li><a href="#get_version_id">get_version_id</a></li>
       <li><a href="#has_selinux_by_default">has_selinux_by_default</a></li>
       <li><a href="#is_agama">is_agama</a></li>
+      <li><a href="#is_ltss">is_ltss</a></li>
     </ul>
   </li>
 </ul><h1>lib/version_utils.pm</h1>
@@ -148,6 +150,10 @@
 
 <p>Check if distribution is ALP</p>
 
+<h2 id="is_aeon">is_aeon</h2>
+
+<p>Check if distribution is Aeon</p>
+
 <h2 id="is_selfinstall">is_selfinstall</h2>
 
 <p>Check if SLEM is in flavor of self installable iso</p>
@@ -204,13 +210,17 @@
 
 <p>Returns true if called on a wsl build</p>
 
+<h2 id="is_dualboot">is_dualboot</h2>
+
+<p>Returns true if called on a dual boot test</p>
+
 <h2 id="is_released">is_released</h2>
 
 <p>Returns true if called on a released build</p>
 
 <h2 id="is_staging">is_staging</h2>
 
-<p>Returns true if called in staging</p>
+<p>Returns true if called in staging, checks for a particular staging if argument is passed</p>
 
 <h2 id="is_storage_ng">is_storage_ng</h2>
 
@@ -330,10 +340,6 @@
 
 <p>Returns true if PUBLIC_CLOUD is set to 1</p>
 
-<h2 id="is_openstack">is_openstack</h2>
-
-<p>Returns true if the tests loads Cloud image in OpenStack environment NO_CLOUD variable is set in order to test the image in QEMU</p>
-
 <h2 id="is_leap_migration">is_leap_migration</h2>
 
 <p>Returns true if called in a leap to sle migration scenario</p>
@@ -397,6 +403,10 @@
 <h2 id="is_agama">is_agama</h2>
 
 <p>Check if agama installation is being used</p>
+
+<h2 id="is_ltss">is_ltss</h2>
+
+<p>Returns true if the system is running on LTSS (Long Term Service Support)</p>
 
 
 </body>

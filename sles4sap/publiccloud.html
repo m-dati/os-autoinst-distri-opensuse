@@ -2,26 +2,26 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>lib/sles4sap_publiccloud.pm</title>
+<title>lib/sles4sap/publiccloud.pm</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link rel='stylesheet' href='./style.css' />
+<link rel='stylesheet' href='../style.css' />
 </head>
 
 <body>
 
 
 
-<ul id="index"><li><a href="./index.html"><i>&lt;= Back to file list</i></a></li>
+<ul id="index"><li><a href="../index.html"><i>&lt;= Back to file list</i></a></li>
   <li><a href="#DESCRIPTION">DESCRIPTION</a>
     <ul>
       <li><a href="#run_cmd-run_cmd-cmd-command-runas-user-timeout-60">run_cmd run_cmd(cmd =&gt; &#39;command&#39;, [runas =&gt; &#39;user&#39;, timeout =&gt; 60]);</a></li>
       <li><a href="#run_cmd_retry-run_cmd_retry-cmd-command-retry-3-timeout-60-delay-10">run_cmd_retry run_cmd_retry(cmd =&gt; &#39;command&#39;, [retry =&gt; 3, timeout =&gt; 60, delay =&gt; 10]);</a></li>
       <li><a href="#get_promoted_hostname-get_promoted_hostname">get_promoted_hostname() get_promoted_hostname();</a></li>
-      <li><a href="#sles4sap_cleanup">sles4sap_cleanup</a></li>
+      <li><a href="#deployment_cleanup">deployment_cleanup</a></li>
       <li><a href="#get_hana_topology-Parses-command-output-returns-hash-of-hashes-containing-values-for-each-host">get_hana_topology Parses command output, returns hash of hashes containing values for each host.</a></li>
       <li><a href="#is_hana_online-is_hana_online-timeout-120-wait_for_start-false">is_hana_online is_hana_online([timeout =&gt; 120, wait_for_start =&gt; &#39;false&#39;]);</a></li>
       <li><a href="#is_hana_resource_running-is_hana_resource_running-quiet-0">is_hana_resource_running is_hana_resource_running([quiet =&gt; 0]);</a></li>
-      <li><a href="#is_hana_node_up-is_hana_node_up-my_instance-timeout-900">is_hana_node_up is_hana_node_up($my_instance, [timeout =&gt; 900]);</a></li>
+      <li><a href="#wait_hana_node_up-wait_hana_node_up-my_instance-timeout-900-ssh_keepalive-1">wait_hana_node_up wait_hana_node_up($my_instance, [timeout =&gt; 900, ssh_keepalive =&gt; 1]);</a></li>
       <li><a href="#stop_hana-stop_hana-timeout-timeout-method-method">stop_hana stop_hana([timeout =&gt; $timeout, method =&gt; $method]);</a></li>
       <li><a href="#start_hana-start_hana-timeout-60">start_hana start_hana([timeout =&gt; 60]);</a></li>
       <li><a href="#cleanup_resource-cleanup_resource-timeout-60">cleanup_resource cleanup_resource([timeout =&gt; 60]);</a></li>
@@ -47,6 +47,7 @@
       <li><a href="#is_hana_database_online">is_hana_database_online</a></li>
       <li><a href="#is_primary_node_online">is_primary_node_online</a></li>
       <li><a href="#pacemaker_version">pacemaker_version</a></li>
+      <li><a href="#get_online_string">get_online_string</a></li>
       <li><a href="#saphanasr_showAttr_version">saphanasr_showAttr_version</a></li>
       <li><a href="#wait_for_cluster">wait_for_cluster</a></li>
       <li><a href="#wait_for_zypper">wait_for_zypper</a></li>
@@ -54,7 +55,7 @@
       <li><a href="#wait_for_idle">wait_for_idle</a></li>
     </ul>
   </li>
-</ul><h1>lib/sles4sap_publiccloud.pm</h1>
+</ul><h1>lib/sles4sap/publiccloud.pm</h1>
 
 <h1 id="DESCRIPTION">DESCRIPTION</h1>
 
@@ -85,7 +86,11 @@ otherwise it will be executed as root.</code></pre>
 <dd>
 
 </dd>
-<dt id="pass-through-all-other-arguments-supported-by-run_ssh_command"><b>...</b> - pass through all other arguments supported by run_ssh_command</dt>
+<dt id="ssh_keepalive---optional:-enable-SSH-keepalive-options-to-detect-hung-connections-faster"><b>ssh_keepalive</b> - optional: enable SSH keepalive options to detect hung connections faster</dt>
+<dd>
+
+</dd>
+<dt id="pass-through-all-other-arguments-supported-by-ssh_script_run"><b>...</b> - pass through all other arguments supported by ssh_script_run</dt>
 <dd>
 
 </dd>
@@ -115,6 +120,10 @@ retried for C&lt;retry&gt; times, with C&lt;delay&gt; seconds of interval in bet
 <dd>
 
 </dd>
+<dt id="ssh_keepalive---optional:-enable-SSH-keepalive-options-and-send-ETX-on-failure"><b>ssh_keepalive</b> - optional: enable SSH keepalive options and send ETX on failure</dt>
+<dd>
+
+</dd>
 <dt id="pass-through-all-other-arguments-supported-by-run_cmd"><b>...</b> - pass through all other arguments supported by run_cmd</dt>
 <dd>
 
@@ -125,7 +134,7 @@ retried for C&lt;retry&gt; times, with C&lt;delay&gt; seconds of interval in bet
 
 <pre><code>Checks and returns hostname of HANA promoted node according to crm shell output.</code></pre>
 
-<h2 id="sles4sap_cleanup">sles4sap_cleanup</h2>
+<h2 id="deployment_cleanup">deployment_cleanup</h2>
 
 <pre><code>Clean up Network peering and qesap deployment
 This method does not internally die and try to execute
@@ -174,7 +183,7 @@ Return 0 if no internal error.</code></pre>
 </dd>
 </dl>
 
-<h2 id="is_hana_node_up-is_hana_node_up-my_instance-timeout-900">is_hana_node_up is_hana_node_up($my_instance, [timeout =&gt; 900]);</h2>
+<h2 id="wait_hana_node_up-wait_hana_node_up-my_instance-timeout-900-ssh_keepalive-1">wait_hana_node_up wait_hana_node_up($my_instance, [timeout =&gt; 900, ssh_keepalive =&gt; 1]);</h2>
 
 <pre><code>Waits until &#39;is-system-running&#39; returns successfully on the target instance.</code></pre>
 
@@ -185,6 +194,10 @@ Return 0 if no internal error.</code></pre>
 
 </dd>
 <dt id="timeout---how-much-time-to-wait-for-before-aborting"><b>timeout</b> - how much time to wait for before aborting</dt>
+<dd>
+
+</dd>
+<dt id="ssh_keepalive---optional:-enable-SSH-keepalive-options"><b>ssh_keepalive</b> - optional: enable SSH keepalive options</dt>
 <dd>
 
 </dd>
@@ -204,6 +217,10 @@ Return 0 if no internal error.</code></pre>
 
 </dd>
 <dt id="timeout---only-used-for-stop-and-kill"><b>timeout</b> - only used for stop and kill</dt>
+<dd>
+
+</dd>
+<dt id="online_string---mandatory-string-used-to-match-node-state-in-topology-output-4-for-pacemaker-2.1.7-lss-score-online-for-older-versions.-Use-self-get_online_string-to-compute-this-value"><b>online_string</b> - mandatory string used to match node state in topology output; &#39;4&#39; for pacemaker &gt;= 2.1.7 (lss score), &#39;online&#39; for older versions. Use <code>$self-</code>get_online_string()&gt; to compute this value.</dt>
 <dd>
 
 </dd>
@@ -273,6 +290,10 @@ Expected conditions:
 <dl>
 
 <dt id="timeout---timeout-for-waiting-sync-state"><b>timeout</b> - timeout for waiting sync state</dt>
+<dd>
+
+</dd>
+<dt id="online_string---mandatory-string-used-to-match-node-state-in-topology-output-4-for-pacemaker-2.1.7-lss-score-online-for-older-versions.-Use-self-get_online_string-to-compute-this-value1"><b>online_string</b> - mandatory string used to match node state in topology output; &#39;4&#39; for pacemaker &gt;= 2.1.7 (lss score), &#39;online&#39; for older versions. Use <code>$self-</code>get_online_string()&gt; to compute this value.</dt>
 <dd>
 
 </dd>
@@ -532,6 +553,26 @@ Returns if primary node status is offline with 0 and 1 online</code></pre>
 
 <pre><code>Returns the pacemaker version</code></pre>
 
+<dl>
+
+<dt id="retries---OPTIONAL-amount-of-retries-to-attempt---default-0"><b>retries</b> - (OPTIONAL) amount of retries to attempt - default 0</dt>
+<dd>
+
+</dd>
+<dt id="sleep_time---OPTIONAL-seconds-to-sleep-between-retries---default-5"><b>sleep_time</b> - (OPTIONAL) seconds to sleep between retries - default 5</dt>
+<dd>
+
+</dd>
+</dl>
+
+<h2 id="get_online_string">get_online_string</h2>
+
+<pre><code>$self-&gt;get_online_string()
+
+Returns the string used to match the online/active node state in C&lt;check_hana_topology&gt;.
+For pacemaker &gt;= 2.1.7 this is C&lt;&#39;4&#39;&gt; (lss score); for older versions it is C&lt;&#39;online&#39;&gt;.
+Use this helper wherever C&lt;online_string&gt; must be computed from the cluster&#39;s pacemaker version.</code></pre>
+
 <h2 id="saphanasr_showAttr_version">saphanasr_showAttr_version</h2>
 
 <pre><code>Returns the SAPHanaSR-showattr version</code></pre>
@@ -550,6 +591,10 @@ Returns if primary node status is offline with 0 and 1 online</code></pre>
 <dd>
 
 </dd>
+<dt id="online_string---mandatory-string-used-to-match-node-state-in-topology-output-4-for-pacemaker-2.1.7-lss-score-online-for-older-versions.-Use-self-get_online_string-to-compute-this-value2"><b>online_string</b> - mandatory string used to match node state in topology output; &#39;4&#39; for pacemaker &gt;= 2.1.7 (lss score), &#39;online&#39; for older versions. Use <code>$self-</code>get_online_string()&gt; to compute this value.</dt>
+<dd>
+
+</dd>
 </dl>
 
 <h2 id="wait_for_zypper">wait_for_zypper</h2>
@@ -559,7 +604,7 @@ Returns normally if Zypper is not locked or dies after a maximum number of retri
 
 <dl>
 
-<dt id="instance---The-instance-object-on-which-the-Zypper-command-is-executed.-This-object-must-have-the-run_ssh_command-method-implemented"><b>$instance</b> - The instance object on which the Zypper command is executed. This object must have the run_ssh_command method implemented.</dt>
+<dt id="instance---The-instance-object-on-which-the-Zypper-command-is-executed.-This-object-must-have-the-ssh_script_run-method-implemented"><b>$instance</b> - The instance object on which the Zypper command is executed. This object must have the ssh_script_run method implemented.</dt>
 <dd>
 
 </dd>
@@ -571,11 +616,7 @@ Returns normally if Zypper is not locked or dies after a maximum number of retri
 <dd>
 
 </dd>
-<dt id="timeout---The-number-of-seconds-to-wait-before-aborting-zypper-ref"><b>timeout</b> - The number of seconds to wait before aborting zypper ref</dt>
-<dd>
-
-</dd>
-<dt id="runas---If-runas-defined-command-will-be-executed-as-specified-user-otherwise-it-will-be-executed-as-cloudadmin"><b>runas</b> - If &#39;runas&#39; defined, command will be executed as specified user, otherwise it will be executed as cloudadmin.</dt>
+<dt id="timeout---The-number-of-seconds-to-wait-before-aborting-zypper-ref-ssh_script_run-item-runas---If-runas-defined-command-will-be-executed-as-specified-user-otherwise-it-will-be-executed-as-cloudadmin"><b>timeout</b> - The number of seconds to wait before aborting zypper ref ssh_script_run =item <b>runas</b> - If &#39;runas&#39; defined, command will be executed as specified user, otherwise it will be executed as cloudadmin.</dt>
 <dd>
 
 </dd>
@@ -587,11 +628,11 @@ Returns normally if Zypper is not locked or dies after a maximum number of retri
 
 <dl>
 
-<dt id="instance---The-instance-object-on-which-the-Zypper-command-is-executed.-This-object-must-have-the-run_ssh_command-method-implemented1"><b>$instance</b> - The instance object on which the Zypper command is executed. This object must have the run_ssh_command method implemented.</dt>
+<dt id="instance---The-instance-object-on-which-the-Zypper-command-is-executed.-This-object-must-have-the-ssh_script_run-method-implemented1"><b>$instance</b> - The instance object on which the Zypper command is executed. This object must have the ssh_script_run method implemented.</dt>
 <dd>
 
 </dd>
-<dt id="runas---If-runas-defined-command-will-be-executed-as-specified-user-otherwise-it-will-be-executed-as-cloudadmin1"><b>runas</b> - If &#39;runas&#39; defined, command will be executed as specified user, otherwise it will be executed as cloudadmin.</dt>
+<dt id="runas---If-runas-defined-command-will-be-executed-as-specified-user-otherwise-it-will-be-executed-as-cloudadmin"><b>runas</b> - If &#39;runas&#39; defined, command will be executed as specified user, otherwise it will be executed as cloudadmin.</dt>
 <dd>
 
 </dd>

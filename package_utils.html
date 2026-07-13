@@ -15,6 +15,7 @@
   <li><a href="#DESCRIPTION">DESCRIPTION</a>
     <ul>
       <li><a href="#install_package">install_package</a></li>
+      <li><a href="#install_available_packages">install_available_packages</a></li>
       <li><a href="#uninstall_package">uninstall_package</a></li>
     </ul>
   </li>
@@ -28,13 +29,23 @@
 
 <pre><code>install_package(&#39;kernel-devel&#39; [, trup_packages =&gt; &#39;kernel-default-base] [, zypper_packages =&gt; &#39;kernel-devel&#39;]);</code></pre>
 
-<p><code>packages</code> defines packages to install for both zypper and trup call, Parameters <code>trup_extra</code> and <code>zypper_extra</code> define transactional or zypper specific packages. <code>skip_trup</code> or <code>skip_zypper</code> will return from fucntion, record_info is used if sentence is argument value. <code>trup_reboot</code> parameter will run check_reboot_changes after trup_call, reboot if diff between the current FS and the new snapshot.</p>
+<p><code>packages</code> defines packages to install for both zypper and trup call, Parameters <code>trup_extra</code> and <code>zypper_extra</code> define transactional or zypper specific packages. <code>skip_trup</code> or <code>skip_zypper</code> will return from fucntion, record_info is used if sentence is argument value. <code>trup_reboot</code> parameter will run reboot_on_changes after trup_call, reboot if diff between the current FS and the new snapshot. <code>trup_apply</code> parameter will apply pending changes from the new snapshot without rebooting, using <code>transactional-update apply</code>. <code>trup_reboot</code> and <code>trup_apply</code> are mutually exclusive.</p>
+
+<p><b>Warning</b>: Only use <code>trup_apply</code> for end user applications and server services. Do not use it for kernel packages or system libraries that require a reboot, as doing so may leave the system in an inconsistent state.</p>
+
+<h2 id="install_available_packages">install_available_packages</h2>
+
+<pre><code>install_available_packages($packages, %args);</code></pre>
+
+<p><code>packages</code> defines packages to install for both zypper and trup call, keyword parameters are identical to <code>install_package()</code>. <code>trup_continue</code> will be enabled by default.</p>
 
 <h2 id="uninstall_package">uninstall_package</h2>
 
 <pre><code>uninstall_package(&#39;kernel-devel&#39; [, trup_extra =&gt; &#39;kernel-default-base&#39;] [, zypper_extra =&gt; &#39;kernel-devel&#39;]);</code></pre>
 
-<p><code>packages</code> defines packages to uninstall for both zypper and trup call, Parameters <code>trup_extra</code> and <code>zypper_extra</code> define transactional or zypper specific packages. <code>skip_trup</code> or <code>skip_zypper</code> will return from fucntion, record_info is used if sentence is argument value. <code>trup_continue</code> parameter will add changes to the default snapshot. Without this parameter, any changes in the default snapshot will be discarded and a new snapshot will be created based on the active one. <code>trup_reboot</code> parameter will run check_reboot_changes after trup_call, reboot if diff between the current FS and the new snapshot.</p>
+<p><code>packages</code> defines packages to uninstall for both zypper and trup call, Parameters <code>trup_extra</code> and <code>zypper_extra</code> define transactional or zypper specific packages. <code>skip_trup</code> or <code>skip_zypper</code> will return from fucntion, record_info is used if sentence is argument value. <code>trup_continue</code> parameter will add changes to the default snapshot. Without this parameter, any changes in the default snapshot will be discarded and a new snapshot will be created based on the active one. <code>trup_reboot</code> parameter will run reboot_on_changes after trup_call, reboot if diff between the current FS and the new snapshot. <code>trup_apply</code> parameter will apply pending changes from the new snapshot without rebooting, using <code>transactional-update apply</code>. <code>trup_reboot</code> and <code>trup_apply</code> are mutually exclusive.</p>
+
+<p><b>Warning</b>: Only use <code>trup_apply</code> for end user applications and server services. Do not use it for kernel packages or system libraries that require a reboot, as doing so may leave the system in an inconsistent state.</p>
 
 
 </body>

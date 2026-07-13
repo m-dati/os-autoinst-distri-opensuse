@@ -14,6 +14,8 @@
 <ul id="index"><li><a href="../index.html"><i>&lt;= Back to file list</i></a></li>
   <li>
     <ul>
+      <li><a href="#get_default_ssh_keyfile">get_default_ssh_keyfile</a></li>
+      <li><a href="#assign_random_bridge_guest">assign_random_bridge_guest</a></li>
       <li><a href="#check_port_state">check_port_state</a></li>
       <li><a href="#is_registered_system">is_registered_system</a></li>
       <li><a href="#do_system_registration">do_system_registration</a></li>
@@ -29,9 +31,23 @@
       <li><a href="#double_check_xen_role">double_check_xen_role</a></li>
       <li><a href="#check_kvm_modules">check_kvm_modules</a></li>
       <li><a href="#download_installation_iso">download_installation_iso</a></li>
+      <li><a href="#install_product_software">install_product_software</a></li>
+      <li><a href="#collect_guests_supportconfig_and_logs">collect_guests_supportconfig_and_logs</a></li>
+      <li><a href="#reset_network_config">reset_network_config</a></li>
+      <li><a href="#is_transactional_guest">is_transactional_guest</a></li>
     </ul>
   </li>
 </ul><h1>lib/virt_autotest/utils.pm</h1>
+
+<h2 id="get_default_ssh_keyfile">get_default_ssh_keyfile</h2>
+
+<p>Get the default SSH key file path based on SLE version. Returns ed25519 key for SLE 16+ (RSA+SHA1 is disabled by default), and RSA key for SLE 15 and below. Optional parameter: &#39;pubkey&#39; =&gt; 1 to get the public key file path.</p>
+
+<h2 id="assign_random_bridge_guest">assign_random_bridge_guest</h2>
+
+<p>Randomly selects one guest to use bridge network (bridge=br0) for public IP testing. This ensures all guests eventually get tested while minimizing public IP consumption.</p>
+
+<p>Override: Set FORCE_BRIDGE_GUEST=&lt;guestname&gt; to force a specific guest for reproducibility.</p>
 
 <h2 id="check_port_state">check_port_state</h2>
 
@@ -61,7 +77,7 @@
 
 <pre><code>subscribe_extensions_and_modules(dst_machine =&gt; $machine, activate =&gt; 1/0, reg_exts =&gt; $exts)</code></pre>
 
-<p>Any available extensions and modules listed out by SUSEConnect --list-extensions that do not require additional regcode can be subscribe directly by using command SUSEConnect -p [extension or module]. Subscription is to be performed on localhost by default if argument dst_machine is not given any other address, and successful access to dst_machine via ssh should be guaranteed in advance if dst_machine points to a remote machine. Deactivation is also supported if argument activate is given 0 explicitly. Multiple extensions or modules can be passed in as a single string separated by space to argument reg_exts to be subscribed one by one. Using &quot;transactional-update register&quot; for newer OS like SLE Micro 6.0, which is the more preferred way to do registration.</p>
+<p>Any available extensions and modules listed out by SUSEConnect --list-extensions that do not require additional regcode can be subscribe directly by using command SUSEConnect -p [extension or module]. Subscription is to be performed on localhost by default if argument dst_machine is not given any other address, and successful access to dst_machine via ssh should be guaranteed in advance if dst_machine points to a remote machine. Deactivation is also supported if argument activate is given 0 explicitly. Multiple extensions or modules can be passed in as a single string separated by space to argument reg_exts to be subscribed one by one. Direct using &quot;transactional-update register&quot; or &quot;SUSEConnect&quot; depends on the actual situation in which this subroutine is called, namely whether already in transactional shell , so either is allowed by toggling argument usetrup or setting USE_TRUP.</p>
 
 <h2 id="is_sev_es_guest">is_sev_es_guest</h2>
 
@@ -117,6 +133,31 @@
 <pre><code>my $local_path = download_installation_iso($iso_url, $target_dir);</code></pre>
 
 <p>Returns local path on success, undef on failure.</p>
+
+<h2 id="install_product_software">install_product_software</h2>
+
+<pre><code>install_product_software(package =&gt; &#39;package1,package2&#39;, pattern =&gt; &#39;pattern1
+    ,pattern2&#39;)</code></pre>
+
+<p>Install desired packages and patterns from existing product repositories if settings INSTALL_PRODUCT_PACKAGES and INSTALL_PRODUCT_PATTERNS are specified with packages and patterns separated by comma. User can also specify desired pacakges and patterns by passing in arguments package and pattern.</p>
+
+<h2 id="collect_guests_supportconfig_and_logs">collect_guests_supportconfig_and_logs</h2>
+
+<pre><code>collect_guests_supportconfig_and_logs();</code></pre>
+
+<p>Runs supportconfig and collects compressed /var/log* from all guests</p>
+
+<h2 id="reset_network_config">reset_network_config</h2>
+
+<pre><code>reset_network_config(config =&gt; absolute path to config file);</code></pre>
+
+<p>Reset network config, for example, restore auto dns policy to enable automatic dns migration to higher version</p>
+
+<h2 id="is_transactional_guest">is_transactional_guest</h2>
+
+<pre><code>is_transactional_guest(address =&gt; ip or domain name or fqdn);</code></pre>
+
+<p>Check whether guest is in immutable mode by leveraging the two most reliable methods , namely transactional-update shell exists or root partition is mounted read only if its domain name does not have &#39;immutable&#39; or &#39;transactional&#39;. Need ssh connection to perform the check, so argument address is needed which can be guest ip address, domain name or FQDN as long as it can be used for ssh connection.</p>
 
 
 </body>

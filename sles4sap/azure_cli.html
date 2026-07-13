@@ -63,6 +63,7 @@
       <li><a href="#az_disk_create">az_disk_create</a></li>
       <li><a href="#az_resource_delete">az_resource_delete</a></li>
       <li><a href="#az_resource_list">az_resource_list</a></li>
+      <li><a href="#az_resource_tag">az_resource_tag</a></li>
       <li><a href="#az_validate_uuid_pattern">az_validate_uuid_pattern</a></li>
       <li><a href="#az_storage_blob_upload">az_storage_blob_upload</a></li>
       <li><a href="#az_storage_blob_lease_acquire">az_storage_blob_lease_acquire</a></li>
@@ -81,8 +82,7 @@
       <li><a href="#az_network_dns_link_list">az_network_dns_link_list</a></li>
       <li><a href="#az_network_dns_links_cleanup">az_network_dns_links_cleanup</a></li>
       <li><a href="#az_network_dns_zones_cleanup">az_network_dns_zones_cleanup</a></li>
-      <li><a href="#az_account_show">az_account_show</a></li>
-      <li><a href="#"></a></li>
+      <li><a href="#az_role_definition_list">az_role_definition_list</a></li>
     </ul>
   </li>
 </ul><h1>lib/sles4sap/azure_cli.pm</h1>
@@ -121,7 +121,7 @@
 
 <pre><code>my $ret = az_group_name_get();</code></pre>
 
-<p>Get the name of all existing Resource Group in the current subscription. By default the output is an array of strings. Output can be modified using <b>$args{query}</b>.</p>
+<p>Get the name of all existing Resource Group in the current subscription. By default the output is an array of strings. Output is always an hash with `data` and `err` keys: `data` is the decode_json of the stdout. The internal data structure can change accordingly to what is provided via <b>query</b> `err` is the stderr string, key is always present but it could have empty value.</p>
 
 <dl>
 
@@ -697,6 +697,10 @@
 <dd>
 
 </dd>
+<dt id="debug---if-not-zero-add---debug"><b>debug</b> - if not zero add --debug</dt>
+<dd>
+
+</dd>
 </dl>
 
 <h2 id="az_vm_list">az_vm_list</h2>
@@ -725,9 +729,13 @@
 
 <p>Get some details of a specific VM</p>
 
-<p>Json output looks like:</p>
+<p>Json output of the az cli looks like:</p>
 
-<p>[ &quot;PowerState/running&quot;, &quot;VM running&quot; ]</p>
+<p>[ { &quot;code&quot;: &quot;ProvisioningState/succeeded&quot;, &quot;displayStatus&quot;: &quot;Provisioning succeeded&quot;, &quot;level&quot;: &quot;Info&quot;, &quot;message&quot;: null, &quot;time&quot;: &quot;2025-12-09T13:50:39.894595+00:00&quot; }, { &quot;code&quot;: &quot;PowerState/running&quot;, &quot;displayStatus&quot;: &quot;VM running&quot;, &quot;level&quot;: &quot;Info&quot;, &quot;message&quot;: null, &quot;time&quot;: null } ]</p>
+
+<p>Return value of this function is an arrray like</p>
+
+<p>[ { &quot;code&quot;: &quot;ProvisioningState/succeeded&quot;, &quot;displayStatus&quot;: &quot;Provisioning succeeded&quot;, }, { &quot;code&quot;: &quot;PowerState/running&quot;, &quot;displayStatus&quot;: &quot;VM running&quot;, } ]</p>
 
 <dl>
 
@@ -750,7 +758,7 @@
 
 <p>Get the VM state until status looks like:</p>
 
-<p>[ &quot;PowerState/running&quot;, &quot;VM running&quot; ]</p>
+<p>[ { &quot;code&quot;: &quot;ProvisioningState/succeeded&quot;, &quot;displayStatus&quot;: &quot;Provisioning succeeded&quot;, }, { &quot;code&quot;: &quot;PowerState/running&quot;, &quot;displayStatus&quot;: &quot;VM running&quot;, } ]</p>
 
 <p>or reach timeout.</p>
 
@@ -1069,6 +1077,14 @@
 <dd>
 
 </dd>
+<dt id="timeout---max-expected-execution-time-for-a-single-az-command---default-240sec"><b>timeout</b> - max expected execution time for a single az command - default 240sec</dt>
+<dd>
+
+</dd>
+<dt id="verbose---use-tee-to-print-the-output-also-on-the-terminal-while-redirecting-to-file.-Default-0"><b>verbose</b> - use tee to print the output also on the terminal while redirecting to file. Default 0</dt>
+<dd>
+
+</dd>
 </dl>
 
 <h2 id="az_vm_identity_assign">az_vm_identity_assign</h2>
@@ -1307,6 +1323,24 @@ Return a validated systemAssignedIdentity ID or die.</code></pre>
 </dd>
 </dl>
 
+<h2 id="az_resource_tag">az_resource_tag</h2>
+
+<pre><code>az_resource_tag(resource_ids=&gt;[&#39;/id/a&#39;, &#39;/id/b&#39;], tags=&gt;[&#39;pcw_ignore=1&#39;]);</code></pre>
+
+<p>Tags list of resource IDs with list of tags</p>
+
+<dl>
+
+<dt id="resource_ids-List-of-existing-resource-id-that-will-be-tagged"><b>resource_ids</b> List of existing resource id that will be tagged</dt>
+<dd>
+
+</dd>
+<dt id="tags-List-of-tags"><b>tags</b> List of tags</dt>
+<dd>
+
+</dd>
+</dl>
+
 <h2 id="az_validate_uuid_pattern">az_validate_uuid_pattern</h2>
 
 <pre><code>my $is_valid = az_validate_uuid_pattern(uuid =&gt; $uuid_string);
@@ -1342,7 +1376,7 @@ identifiers for Azure resources.</code></pre>
 <pre><code>az_storage_blob_upload(
     container_name=&gt;&#39;somecontainer&#39;,
     storage_account_name=&gt;&#39;storageaccount&#39;,
-    file=&gt;&#39;somefilename&#39; [, timeout=&gt;42]);</code></pre>
+    file=&gt;&#39;somefilename&#39; [, timeout=&gt;42, name=&gt;&#39;blob_name.txt&#39;]);</code></pre>
 
 <p>Uploads file to a storage container.</p>
 
@@ -1360,6 +1394,10 @@ identifiers for Azure resources.</code></pre>
 <dd>
 
 </dd>
+<dt id="name-Target-blob-filename.-Optional"><b>name</b> Target blob filename. (Optional)</dt>
+<dd>
+
+</dd>
 <dt id="timeout-Timeout-for-az-command.-Default:-90s"><b>timeout</b> Timeout for az command. Default: 90s</dt>
 <dd>
 
@@ -1372,7 +1410,8 @@ identifiers for Azure resources.</code></pre>
     container_name       =&gt; &#39;somecontainer&#39;,
     storage_account_name =&gt; &#39;storageaccount&#39;,
     blob_name            =&gt; &#39;somefilename&#39;,
-    lease_duration       =&gt; 60
+    lease_duration       =&gt; 60,
+    timeout =&gt; 120
 );</code></pre>
 
 <p>Acquire a lease for a storage blob. The function returns a UUID which is then required to modify the file and gives the UUID owner exclusive rights.</p>
@@ -1405,6 +1444,10 @@ identifiers for Azure resources.</code></pre>
 <dd>
 
 </dd>
+<dt id="timeout-az-command-timeout:-default-of-wait_serial-https:-open.qa-api-testapi-script_output"><b>timeout</b> az command timeout: default of `wait_serial` https://open.qa/api/testapi/#script_output</dt>
+<dd>
+
+</dd>
 <dt id="lease_duration-Specifies-the-duration-of-the-lease-in-seconds.-A-non-infinite-lease-can-be-between-15-and-60-seconds.-A-value-of--1-indicates-an-infinite-lease.-Default:--1-infinite"><b>lease_duration</b> Specifies the duration of the lease in seconds. A non-infinite lease can be between 15 and 60 seconds. A value of -1 indicates an infinite lease. Default: -1 (infinite).</dt>
 <dd>
 
@@ -1415,7 +1458,8 @@ identifiers for Azure resources.</code></pre>
 
 <pre><code>az_storage_blob_list(
     container_name=&gt;&#39;somecontainer&#39;,
-    storage_account_name=&gt;&#39;storageaccount&#39; [, query=&gt;&#39;[].name&#39;]
+    storage_account_name=&gt;&#39;storageaccount&#39; [, query=&gt;&#39;[].name&#39;],
+    timeout =&gt; 120
 );</code></pre>
 
 <p>List information about storage blob(s) specified by <b>storage_account_name</b>, <b>container_name</b> and <b>query</b>.</p>
@@ -1431,6 +1475,10 @@ identifiers for Azure resources.</code></pre>
 
 </dd>
 <dt id="query-Query-in-jmespath-format"><b>query</b> Query in jmespath format</dt>
+<dd>
+
+</dd>
+<dt id="timeout-az-command-timeout:-default-of-wait_serial-https:-open.qa-api-testapi-script_output1"><b>timeout</b> az command timeout: default of `wait_serial` https://open.qa/api/testapi/#script_output</dt>
 <dd>
 
 </dd>
@@ -1747,21 +1795,9 @@ identifiers for Azure resources.</code></pre>
 </dd>
 </dl>
 
-<h2 id="az_account_show">az_account_show</h2>
+<h2 id="az_role_definition_list">az_role_definition_list</h2>
 
-<p>Get account informations, by default the ID. By default the output is an strings. Output can be modified using <b>$args{query}</b>.</p>
-
-<dl>
-
-<dt id="query---Modify-output-filter-using-jmespath-query.-Default:-id"><b>query</b> - Modify output filter using jmespath query. Default: &#39;id&#39;</dt>
-<dd>
-
-</dd>
-</dl>
-
-<h2 id=""></h2>
-
-<p>List and return details about named role</p>
+<p>List and return id about named role</p>
 
 <dl>
 

@@ -31,6 +31,7 @@
       <li><a href="#console_nr">console_nr</a></li>
       <li><a href="#prompt_for_user">prompt_for_user</a></li>
       <li><a href="#get_console_info">get_console_info</a></li>
+      <li><a href="#disable_key_repeat_if_applicable">disable_key_repeat_if_applicable</a></li>
       <li><a href="#activate_console">activate_console</a></li>
       <li><a href="#console_selected">console_selected</a></li>
     </ul>
@@ -131,13 +132,23 @@
 
 <p>Returns a triplet describing the console: Session privilege level (root/user), username, console type.</p>
 
+<h2 id="disable_key_repeat_if_applicable">disable_key_repeat_if_applicable</h2>
+
+<pre><code>disable_key_repeat_if_applicable()</code></pre>
+
+<p>Calls disable_key_repeat from the base class implementation if applicable with backward-compatible workaround.</p>
+
+<p>s390x excluded due to &quot;kbdrate: Failed waiting for kbd controller!&quot; error.</p>
+
+<p>Applies backward compatibility for os-autoinst below interface version 48.</p>
+
 <h2 id="activate_console">activate_console</h2>
 
-<pre><code>activate_console($console [, [ensure_tty_selected =&gt; 0|1] [, skip_set_standard_prompt =&gt; 0|1] [, skip_setterm =&gt; 0|1] [, timeout =&gt; $timeout]])</code></pre>
+<pre><code>activate_console($console [, [ensure_tty_selected =&gt; 0|1] [, skip_set_standard_prompt =&gt; 0|1] [, skip_setterm =&gt; 0|1] [, skip_disable_key_repeat =&gt; 0|1] [, timeout =&gt; $timeout]])</code></pre>
 
 <p>Callback whenever a console is selected for the first time. Accepts arguments provided to select_console().</p>
 
-<p><code>skip_set_standard_prompt</code> and <code>skip_setterm</code> arguments skip respective routines, e.g. if you want select_console() without addition console setup. Then, at some point, you should set it on your own.</p>
+<p><code>skip_set_standard_prompt</code>, <code>skip_setterm</code> and <code>skip_disable_key_repeat</code> arguments skip respective routines, e.g. if you want select_console() without addition console setup. Then, at some point, you should set it on your own.</p>
 
 <p>Option <code>ensure_tty_selected</code> ensures TTY is selected.</p>
 

@@ -29,16 +29,10 @@
       <li><a href="#venv_record_installed_packages">venv_record_installed_packages</a></li>
       <li><a href="#venv_deactivate">venv_deactivate</a></li>
       <li><a href="#venv_generate_runner_script">venv_generate_runner_script</a></li>
-      <li><a href="#get_installed_packages_remote">get_installed_packages_remote</a></li>
-      <li><a href="#get_available_packages_remote">get_available_packages_remote</a></li>
-      <li><a href="#zypper_add_repo_remote">zypper_add_repo_remote</a></li>
-      <li><a href="#zypper_remove_repo_remote">zypper_remove_repo_remote</a></li>
-      <li><a href="#zypper_install_remote">zypper_install_remote</a></li>
-      <li><a href="#zypper_install_available_remote">zypper_install_available_remote</a></li>
-      <li><a href="#wait_quit_zypper_pc">wait_quit_zypper_pc</a></li>
       <li><a href="#detect_worker_ip">detect_worker_ip</a></li>
-      <li><a href="#instance-zypper_call_remote">$instance-&gt;zypper_call_remote</a></li>
-      <li><a href="#calculate_custodian_ttl">calculate_custodian_ttl {</a></li>
+      <li><a href="#calculate_custodian_ttl">calculate_custodian_ttl</a></li>
+      <li><a href="#pc_data_url">pc_data_url</a></li>
+      <li><a href="#additional_repos">additional_repos</a></li>
     </ul>
   </li>
 </ul><h1>lib/publiccloud/utils.pm</h1>
@@ -145,52 +139,6 @@
 
 <p>Generates a shell script that activates the virtual environment and runs the specified binary. This script checks if the binary exists in the virtual environment and exits with an error if it does not.</p>
 
-<h2 id="get_installed_packages_remote">get_installed_packages_remote</h2>
-
-<p>get_installed_packages_remote($instance, $packages_ref)</p>
-
-<p>This function checks which packages from the provided list are installed on the remote instance. It returns an array reference containing the names of the installed packages.</p>
-
-<h2 id="get_available_packages_remote">get_available_packages_remote</h2>
-
-<p>get_available_packages_remote($instance, $packages_ref)</p>
-
-<p>This function checks which packages from the provided list are available for installation on the remote instance. It returns an array reference containing the names of the available packages. It uses `zypper -x info` to query the availability of packages.</p>
-
-<h2 id="zypper_add_repo_remote">zypper_add_repo_remote</h2>
-
-<p>zypper_add_repo_remote($instance, $repo_name, $repo_url)</p>
-
-<p>This function adds a repository to the remote instance using zypper. It uses the `-fG` options to add the repository as a GPG-verified repository.</p>
-
-<h2 id="zypper_remove_repo_remote">zypper_remove_repo_remote</h2>
-
-<p>zypper_remove_repo_remote($instance, $repo_name)</p>
-
-<p>This function removes a repository from the remote instance using zypper. It uses the `-n` option to run the command non-interactively.</p>
-
-<h2 id="zypper_install_remote">zypper_install_remote</h2>
-
-<p>zypper_install_remote($instance, $packages)</p>
-
-<p>This function installs the specified packages on the remote instance using zypper. It handles both transactional updates and regular zypper installations based on the system type.</p>
-
-<h2 id="zypper_install_available_remote">zypper_install_available_remote</h2>
-
-<p>zypper_install_available_remote($instance, $packages_ref)</p>
-
-<p>This function checks which packages from the provided list are available for installation on the remote instance. If any packages are available, it installs them using zypper_install_remote.</p>
-
-<h2 id="wait_quit_zypper_pc">wait_quit_zypper_pc</h2>
-
-<pre><code>wait_quit_zypper_pc($instance
-    [, timeout =&gt; 20 ]   # per-attempt SSH timeout (s)
-    [, delay   =&gt; 10 ]   # delay between attempts (s)
-    [, retry   =&gt; 60 ]   # number of attempts
-);</code></pre>
-
-<p>Wait until no background zypper-related processes are running on the remote instance. Uses <code>retry_ssh_command</code> for polling. Returns on success; dies after retries are exhausted.</p>
-
 <h2 id="detect_worker_ip">detect_worker_ip</h2>
 
 <pre><code>detect_worker_ip($proceed_on_failure)
@@ -205,19 +153,25 @@ Return:
 - worker ip, if retrieved
 - undef otherwise (if proceed_on_failure is set)</code></pre>
 
-<h2 id="instance-zypper_call_remote">$instance-&gt;zypper_call_remote</h2>
-
-<pre><code>$instance-&gt;zypper_call_remote($command [, exitcode =&gt; $exitcode] [, timeout =&gt; $timeout];</code></pre>
-
-<p>Function wrapping zypper command for remote execution via ssh; not for tunnelling. Implements similar routine as lib/utils::zypper_call_remote, but for remote execution on publiccloud instances.</p>
-
-<p>Usage example: $instance-&gt;zypper_call_remote(&quot;up&quot;, exitcode =&gt; [0,102,103], timeout =&gt; 300);</p>
-
-<h2 id="calculate_custodian_ttl">calculate_custodian_ttl {</h2>
+<h2 id="calculate_custodian_ttl">calculate_custodian_ttl</h2>
 
 <p>calculate_custodian_ttl($ttl_in_seconds)</p>
 
 <p>This function adds the following tags to public cloud objects: custodian_ttl custodian_ttl is calculated by adding the $ttl_in_seconds to the current time and formatting it in ISO 8601 This tag is needed to compare TTL vs Creation time in Cloud Custodian.</p>
+
+<h2 id="pc_data_url">pc_data_url</h2>
+
+<pre><code>pc_data_url($path);</code></pre>
+
+<p>returns the URL to download osado artifact much like testapi::data_url</p>
+
+<p>Note: Use with curl -L to follow redirects.</p>
+
+<h2 id="additional_repos">additional_repos</h2>
+
+<p>additional_repos();</p>
+
+<p>This function returns a list of additional repos relevant to the Public Cloud job</p>
 
 
 </body>

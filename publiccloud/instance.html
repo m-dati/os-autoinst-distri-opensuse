@@ -14,7 +14,6 @@
 <ul id="index"><li><a href="../index.html"><i>&lt;= Back to file list</i></a></li>
   <li>
     <ul>
-      <li><a href="#run_ssh_command">run_ssh_command</a></li>
       <li><a href="#retry_ssh_command">retry_ssh_command</a></li>
       <li><a href="#apply_cmd_timeout-_apply_cmd_timeout-args-ssh_cmd---wraps-ssh_cmd-within-timeout-call-which-will-make-sure-graceful-and-unconditional-interruption-after-defined-period-of-time">_apply_cmd_timeout _apply_cmd_timeout($args, $ssh_cmd) - wraps $ssh_cmd within timeout call which will make sure graceful and unconditional interruption after defined period of time</a></li>
       <li><a href="#ssh_script_run">ssh_script_run</a></li>
@@ -26,30 +25,23 @@
       <li><a href="#upload_check_logs_tar">upload_check_logs_tar</a></li>
       <li><a href="#wait_for_guestregister">wait_for_guestregister</a></li>
       <li><a href="#update_instance_ip">update_instance_ip</a></li>
-      <li><a href="#wait_for_ssh">wait_for_ssh</a></li>
       <li><a href="#isok">isok</a></li>
       <li><a href="#softreboot">softreboot</a></li>
       <li><a href="#stop">stop</a></li>
       <li><a href="#start">start</a></li>
       <li><a href="#get_state">get_state</a></li>
       <li><a href="#network_speed_test">network_speed_test</a></li>
-      <li><a href="#measure_boottime">measure_boottime</a></li>
+      <li><a href="#check_system_boottime">check_system_boottime</a></li>
       <li><a href="#store_boottime_db">store_boottime_db</a></li>
     </ul>
   </li>
 </ul><h1>lib/publiccloud/instance.pm</h1>
 
-<h2 id="run_ssh_command">run_ssh_command</h2>
-
-<pre><code>run_ssh_command(cmd =&gt; &#39;command&#39;[, timeout =&gt; 90][, ssh_opts =&gt;&#39;..&#39;][, username =&gt; &#39;XXX&#39;][, no_quote =&gt; 0][, rc_only =&gt; 0]);</code></pre>
-
-<p>Runs a command <code>cmd</code> via ssh in the given VM. Retrieves the output. If the command retrieves not zero, an exception is thrown. Timeout can be set by <code>timeout</code> or 90 sec by default. <code>&lt;proceed_on_failure=</code>1&gt;&gt; allows to proceed with validation when <code>cmd</code> is failing (return non-zero exit code) By default, the command is passed in single quotes to SSH. To avoid quoting use <code>&lt;no_quote=</code>1&gt;&gt;. With <code>&lt;ssh_opts=</code>&#39;...&#39;&gt;&gt; you can overwrite all default ops which are in <code>&lt;$instance-</code>ssh_opts&gt;&gt;. Use argument <code>username</code> to specify a different username then <code>&lt;$instance-</code>username()&gt;&gt;. Use argument <code>rc_only</code> to only check for the return code of the command.</p>
-
 <h2 id="retry_ssh_command">retry_ssh_command</h2>
 
-<pre><code>ssh_script_retry(command[, retry =&gt; 3][, delay =&gt; 10][, timeout =&gt; 90][, ssh_opts =&gt;&#39;..&#39;][, username =&gt; &#39;XXX&#39;][, no_quote =&gt; 0]);</code></pre>
+<pre><code>ssh_script_retry(command[, retry =&gt; 3][, delay =&gt; 10][, timeout =&gt; 90][, ssh_opts =&gt;&#39;..&#39;][, username =&gt; &#39;XXX&#39;]);</code></pre>
 
-<p>Run a <code>command</code> via ssh in the given PC instance until it succeeds or the given number of retries is exhausted and an exception is thrown. Timeout can be set by <code>timeout</code> or 90 sec by default. By default, the command is passed in single quotes to SSH. To avoid quoting use <code>&lt;no_quote=</code>1&gt;&gt;. With <code>&lt;ssh_opts=</code>&#39;...&#39;&gt;&gt; you can overwrite all default ops which are in <code>&lt;$instance-</code>ssh_opts&gt;&gt;. Use argument <code>username</code> to specify a different username then <code>&lt;$instance-</code>username()&gt;&gt;.</p>
+<p>Run a <code>command</code> via ssh in the given PC instance until it succeeds or the given number of retries is exhausted and an exception is thrown. Timeout can be set by <code>timeout</code> or 90 sec by default. The command is passed in single quotes to SSH. With <code>&lt;ssh_opts=</code>&#39;...&#39;&gt;&gt; you can overwrite all default ops which are in <code>&lt;$instance-</code>ssh_opts&gt;&gt;. Use argument <code>username</code> to specify a different username then <code>&lt;$instance-</code>username()&gt;&gt;.</p>
 
 <p>This function is deprecated. Please use ssh_script_retry instead.</p>
 
@@ -93,9 +85,29 @@ C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally s
 
 <h2 id="scp">scp</h2>
 
-<pre><code>scp($from, $to[, timeout =&gt; 90]);</code></pre>
+<pre><code>scp($from, $to [, timeout =&gt; 90] [, proceed_on_failure =&gt; 0]);</code></pre>
 
-<p>Use scp to copy a file from or to this instance. A url starting with <code>remote:</code> is replaced with the IP from this instance. E.g. a call to copy the file <i>/var/log/cloudregister</i> to <i>/tmp</i> looks like: <code>&lt;&lt;$instance-</code>scp(&#39;remote:/var/log/cloudregister&#39;, &#39;/tmp&#39;);&gt;&gt;&gt;</p>
+<p>Copy a file to or from this instance using <code>scp</code>.</p>
+
+<p>Arguments:</p>
+
+<p><code>$from</code> - source path. When it starts with <code>remote:</code>, the prefix is replaced with <code>&lt;username&gt;@&lt;public_ip&gt;:</code> so the file is read from this instance (download). Otherwise it is treated as a local path. Using <code>remote:</code> is only a convenience: you are free to pass an explicit <code>user@host:/path</code> instead, which is left untouched by this function.</p>
+
+<p><code>$to</code> - destination path. Uses the same <code>remote:</code> rewriting as <code>$from</code>, so a <code>remote:</code> destination uploads a local file to this instance. As with <code>$from</code>, an explicit <code>user@host:/path</code> can be passed and is left untouched.</p>
+
+<p><code>timeout</code> - maximum time in seconds allowed for the scp command. Defaults to <code>SSH_TIMEOUT</code> (90 seconds).</p>
+
+<p><code>proceed_on_failure</code> - when set to a true value a failing scp does not abort the test: the command is run via <code>script_run</code> and only an informational message is recorded. When false (the default) the copy is run via <code>assert_script_run</code> so a failure dies. Defaults to <code>0</code>.</p>
+
+<p>Any <code>-E &lt;file</code>&gt; logging options present in <code>$instance-&gt;ssh_opts</code> are stripped, because <code>scp</code> does not accept them.</p>
+
+<p>E.g. to download the file <i>/var/log/cloudregister</i> into <i>/tmp</i>:</p>
+
+<pre><code>$instance-&gt;scp(&#39;remote:/var/log/cloudregister&#39;, &#39;/tmp&#39;);</code></pre>
+
+<p>and to upload a local <i>/tmp/foo</i> to the instance home directory:</p>
+
+<pre><code>$instance-&gt;scp(&#39;/tmp/foo&#39;, &#39;remote:/home/user/foo&#39;);</code></pre>
 
 <h2 id="upload_log">upload_log</h2>
 
@@ -124,18 +136,6 @@ C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally s
 <pre><code>update_instance_ip(timeout =&gt; 600)</code></pre>
 
 <p>This subroutine checks the public IP cloud provider provides for the VM. When the IP differs from `$self-&gt;public_ip` we update `$self-&gt;public_ip`.</p>
-
-<h2 id="wait_for_ssh">wait_for_ssh</h2>
-
-<pre><code>wait_for_ssh([timeout =&gt; 600] [, proceed_on_failure =&gt; 0] [, scan_ssh_host_key =&gt; 0] [, ...])</code></pre>
-
-<p>When a remote pc instance starting, by default wait_stop param.=0(false) and this routine checks until the SSH port of the remote instance is reachable and open. Then by default also checks that system is up, unless systemup_check false/0.</p>
-
-<p>Wnen a remote pc instance is stopping in shutdown, we set input param. wait_stop=1(true), to expect until ssh is closed; automatic defaults systemup_check=0 and proceed_on_failure=1 applied. Status values of exit_code: 0 = pass; 1 = fail; 2 = fail,but retry,till timeout or valid outcome.</p>
-
-<p>Parameters: timeout =&gt; total wait timeout; default: 600. wait_stop =&gt; If true waits for ssh port to become unreachable, if false waits for ssh reachable; default: false. proceed_on_failure =&gt; in case of fail, if false exit test with error, if true let calling code to continue; default: wait_stop. scan_ssh_host_key =&gt; If true we will rescan the SSH host key This will be true when: * SUT changes it&#39;s public IP address * SUT regenerates it&#39;s SSH host keys (e.g. when cloud-init state is cleared) username =&gt; default: username(). systemup_check =&gt; If true, checks if the system is up too, instead of just checking the ssh port; default: !wait_stop. logs =&gt; If true, upload journal to test logs, if false log not uploaded, to speed up check; default: true.</p>
-
-<p>Return: duration if pass undef if fail and proceed_on_failure true, otherwise die.</p>
 
 <h2 id="isok">isok</h2>
 
@@ -175,11 +175,11 @@ C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally s
 
 <p>Test the network speed.</p>
 
-<h2 id="measure_boottime">measure_boottime</h2>
+<h2 id="check_system_boottime">check_system_boottime</h2>
 
-<pre><code>measure_boottime();</code></pre>
+<pre><code>check_system_boottime();</code></pre>
 
-<p>Perfomrance measurement of the system Boot time. Mainly used <code>systemd-analyze</code> command for the data extraction. Data is then collected in an internal record, ready for storing in a DB. Set PUBLIC_CLOUD_PERF_COLLECT true or &gt;0, to activate boottime measurements.</p>
+<p>Check the system boot time, measured by <code>systemd-analyze</code>, to be under a threshold. Assign the threshold in seconds to PUBLIC_CLOUD_BOOTTIME_MAX in test settings. The boot time is saved in a local json structure, then printed in the test&#39;s logs: when the threshold is exceeded the job is stopped. The routine is skipped when the threshold is undefined or zero.</p>
 
 <h2 id="store_boottime_db">store_boottime_db</h2>
 
