@@ -355,7 +355,8 @@ sub wait_for_guestregister {
             $self->upload_log($log, log_name => $name);
         }
 
-        if (time() - $last_info > 10) {
+        if ((time() - $last_info) % 60 < 1) {
+            # print each 1min of reties
             record_info('WAIT', 'Wait for guest register: ' . $out);
             $last_info = time();
         }
