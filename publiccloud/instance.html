@@ -15,7 +15,7 @@
   <li>
     <ul>
       <li><a href="#retry_ssh_command">retry_ssh_command</a></li>
-      <li><a href="#apply_cmd_timeout-_apply_cmd_timeout-args-ssh_cmd---wraps-ssh_cmd-within-timeout-call-which-will-make-sure-graceful-and-unconditional-interruption-after-defined-period-of-time">_apply_cmd_timeout _apply_cmd_timeout($args, $ssh_cmd) - wraps $ssh_cmd within timeout call which will make sure graceful and unconditional interruption after defined period of time</a></li>
+      <li><a href="#wrap_timeout-_wrap_timeout-args-ssh_cmd---wraps-ssh_cmd-within-timeout-call-which-will-make-sure-graceful-and-unconditional-interruption-after-defined-period-of-time">_wrap_timeout _wrap_timeout($args, $ssh_cmd) - wraps $ssh_cmd within timeout call which will make sure graceful and unconditional interruption after defined period of time</a></li>
       <li><a href="#ssh_script_run">ssh_script_run</a></li>
       <li><a href="#ssh_assert_script_run">ssh_assert_script_run</a></li>
       <li><a href="#ssh_script_output">ssh_script_output</a></li>
@@ -25,6 +25,7 @@
       <li><a href="#upload_check_logs_tar">upload_check_logs_tar</a></li>
       <li><a href="#wait_for_guestregister">wait_for_guestregister</a></li>
       <li><a href="#update_instance_ip">update_instance_ip</a></li>
+      <li><a href="#wait_for_ssh_unreachable">wait_for_ssh_unreachable</a></li>
       <li><a href="#isok">isok</a></li>
       <li><a href="#softreboot">softreboot</a></li>
       <li><a href="#stop">stop</a></li>
@@ -32,7 +33,6 @@
       <li><a href="#get_state">get_state</a></li>
       <li><a href="#network_speed_test">network_speed_test</a></li>
       <li><a href="#check_system_boottime">check_system_boottime</a></li>
-      <li><a href="#store_boottime_db">store_boottime_db</a></li>
     </ul>
   </li>
 </ul><h1>lib/publiccloud/instance.pm</h1>
@@ -45,7 +45,7 @@
 
 <p>This function is deprecated. Please use ssh_script_retry instead.</p>
 
-<h2 id="apply_cmd_timeout-_apply_cmd_timeout-args-ssh_cmd---wraps-ssh_cmd-within-timeout-call-which-will-make-sure-graceful-and-unconditional-interruption-after-defined-period-of-time">_apply_cmd_timeout _apply_cmd_timeout($args, $ssh_cmd) - wraps $ssh_cmd within timeout call which will make sure graceful and unconditional interruption after defined period of time</h2>
+<h2 id="wrap_timeout-_wrap_timeout-args-ssh_cmd---wraps-ssh_cmd-within-timeout-call-which-will-make-sure-graceful-and-unconditional-interruption-after-defined-period-of-time">_wrap_timeout _wrap_timeout($args, $ssh_cmd) - wraps $ssh_cmd within timeout call which will make sure graceful and unconditional interruption after defined period of time</h2>
 
 <pre><code>C&lt;args&gt; - reference to args hash. it is important to pass reference so function can modify timeout passed to script_run by the caller
             to make sure it is bigger than value defined in timeout command which suppose to kill what script_run needs to execute
@@ -54,22 +54,24 @@ C&lt;ssh_cmd&gt; - reference to string containing command which will be executed
 
 <h2 id="ssh_script_run">ssh_script_run</h2>
 
-<pre><code>ssh_script_run($cmd [, timeout =&gt; $timeout] [,quiet =&gt; $quiet] [,ssh_opts =&gt; $ssh_opts] [,username =&gt; $username][, ignore_timeout_failure =&gt; $ignore_timeout_failure])
+<pre><code>ssh_script_run($cmd [, timeout =&gt; $timeout] [,quiet =&gt; $quiet] [,ssh_opts =&gt; $ssh_opts] [,username =&gt; $username][, apply_graceful_timeout =&gt; $apply_graceful_timeout])
 
 C&lt;timeout&gt; - TTL for command execution measured in seconds . After that period of time execution will be aborded
 C&lt;quiet&gt; - avoid recording serial_results ( value pass to script_run call)
 C&lt;ssh_opts&gt; - additional ssh options passed to ssh
 C&lt;username&gt; - username used for ssh tunnel
-C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally script_run will die. Setting this parameter to true
+C&lt;apply_graceful_timeout&gt; - in case waiting longer than timeout normally script_run will die. Setting this parameter to true
     will avoid such failure</code></pre>
 
-<p>Runs a command <code>cmd</code> via ssh on the publiccloud instance and returns the return code.</p>
+<p>Runs a command <code>cmd</code> via ssh on the publiccloud instance and returns the return code, using testapi::script_run.</p>
 
 <h2 id="ssh_assert_script_run">ssh_assert_script_run</h2>
 
-<pre><code>ssh_assert_script_run($cmd [, timeout =&gt; $timeout] [, fail_message =&gt; $fail_message] [,quiet =&gt; $quiet] [,ssh_opts =&gt; $ssh_opts] [,username =&gt; $username])</code></pre>
+<pre><code>ssh_assert_script_run($cmd [, timeout =&gt; $timeout] [, fail_message =&gt; $fail_message] [,quiet =&gt; $quiet] [,ssh_opts =&gt; $ssh_opts] [,username =&gt; $username][, apply_graceful_timeout =&gt; $apply_graceful_timeout])</code></pre>
 
-<p>Runs a command <code>cmd</code> via ssh on the publiccloud instance and die, unless it returns zero.</p>
+<p>Runs a command <code>cmd</code> via ssh on the publiccloud instance and die on error.</p>
+
+<p>Use the parameters of ssh_script_run.</p>
 
 <h2 id="ssh_script_output">ssh_script_output</h2>
 
@@ -85,7 +87,7 @@ C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally s
 
 <h2 id="scp">scp</h2>
 
-<pre><code>scp($from, $to [, timeout =&gt; 90] [, proceed_on_failure =&gt; 0]);</code></pre>
+<pre><code>scp($from, $to [, timeout =&gt; 90] [, proceed_on_failure =&gt; 0][, apply_graceful_timeout =&gt; $apply_graceful_timeout]);</code></pre>
 
 <p>Copy a file to or from this instance using <code>scp</code>.</p>
 
@@ -98,6 +100,8 @@ C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally s
 <p><code>timeout</code> - maximum time in seconds allowed for the scp command. Defaults to <code>SSH_TIMEOUT</code> (90 seconds).</p>
 
 <p><code>proceed_on_failure</code> - when set to a true value a failing scp does not abort the test: the command is run via <code>script_run</code> and only an informational message is recorded. When false (the default) the copy is run via <code>assert_script_run</code> so a failure dies. Defaults to <code>0</code>.</p>
+
+<p><code>apply_graceful_timeout</code> - same parameter as ssh_script_run.</p>
 
 <p>Any <code>-E &lt;file</code>&gt; logging options present in <code>$instance-&gt;ssh_opts</code> are stripped, because <code>scp</code> does not accept them.</p>
 
@@ -136,6 +140,54 @@ C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally s
 <pre><code>update_instance_ip(timeout =&gt; 600)</code></pre>
 
 <p>This subroutine checks the public IP cloud provider provides for the VM. When the IP differs from `$self-&gt;public_ip` we update `$self-&gt;public_ip`.</p>
+
+<h2 id="wait_for_ssh_unreachable">wait_for_ssh_unreachable</h2>
+
+<pre><code>my $rc = $instance-&gt;wait_for_ssh_unreachable([delay =&gt; 2] [, timeout =&gt; 300] [, port =&gt; 22] [, die =&gt; 1]);</code></pre>
+
+<p>Wait until the SSH port of this instance stops accepting connections, i.e. when the instance goes down. Retrying continues until the port becomes unreachable or <code>timeout</code> seconds elapse (the number of attempts is derived as <code>timeout / delay</code>).</p>
+
+<p>This is typically used to detect the reboot/shutdown window (e.g. from <code>softreboot</code>). The default <code>delay</code> is intentionally small so the short interval during which SSH becomes unreachable is not missed.</p>
+
+<p>Returns the exit code of the last <code>nc</code> probe, as forwarded by <code>script_retry</code>. The value tells whether the port is still connectable: <code>0</code> means &quot;not connected&quot; (unreachable), a non-zero value means &quot;still connected&quot; (reachable).</p>
+
+<ul>
+
+<li><p><code>0</code> when the port became unreachable within the timeout (success).</p>
+
+</li>
+<li><p>a non-zero value when the port is still reachable after the timeout, but only if <code>die</code> is set to a false value.</p>
+
+</li>
+<li><p>with the default <code>die =&gt; 1</code>, a still-reachable port makes <code>script_retry</code> <b>die</b> instead of returning, so the only value ever returned in that mode is <code>0</code>.</p>
+
+</li>
+<li><p><code>undef</code> as a corner case: <code>script_retry</code> returns <code>undef</code> when the last probe attempt is killed by its <code>timeout</code> wrapper before an exit code is reported. This is unlikely here (the probe is <code>nc -w 1</code>), but callers relying on the return value should treat <code>undef</code> as &quot;not unreachable&quot;.</p>
+
+</li>
+</ul>
+
+<p>Arguments:</p>
+
+<dl>
+
+<dt id="delay---seconds-to-wait-between-two-probes.-Defaults-to-2.-Keep-it-low-to-avoid-missing-the-brief-window-where-SSH-is-unreachable"><b>delay</b> - seconds to wait between two probes. Defaults to <code>2</code>. Keep it low to avoid missing the brief window where SSH is unreachable.</dt>
+<dd>
+
+</dd>
+<dt id="timeout---overall-time-budget-in-seconds.-Defaults-to-the-test-setting-PUBLIC_CLOUD_SSH_TIMEOUT-or-300-if-unset"><b>timeout</b> - overall time budget in seconds. Defaults to the test setting <code>PUBLIC_CLOUD_SSH_TIMEOUT</code> or <code>300</code> if unset.</dt>
+<dd>
+
+</dd>
+<dt id="port---TCP-port-to-probe.-Defaults-to-22"><b>port</b> - TCP port to probe. Defaults to <code>22</code>.</dt>
+<dd>
+
+</dd>
+<dt id="die---when-true-the-default-1-the-function-dies-if-the-port-is-still-reachable-after-timeout.-Set-to-0-to-instead-return-the-non-zero-return-code"><b>die</b> - when true (the default <code>1</code>) the function dies if the port is still reachable after <code>timeout</code>. Set to <code>0</code> to instead return the non-zero return code.</dt>
+<dd>
+
+</dd>
+</dl>
 
 <h2 id="isok">isok</h2>
 
@@ -180,12 +232,6 @@ C&lt;ignore_timeout_failure&gt; - in case waiting longer than timeout normally s
 <pre><code>check_system_boottime();</code></pre>
 
 <p>Check the system boot time, measured by <code>systemd-analyze</code>, to be under a threshold. Assign the threshold in seconds to PUBLIC_CLOUD_BOOTTIME_MAX in test settings. The boot time is saved in a local json structure, then printed in the test&#39;s logs: when the threshold is exceeded the job is stopped. The routine is skipped when the threshold is undefined or zero.</p>
-
-<h2 id="store_boottime_db">store_boottime_db</h2>
-
-<pre><code>store_boottime_db();</code></pre>
-
-<p>Save data collected with measure_boottime in a DB; Mainly stored on a remote InfluxDB on a Grafana server. To activate boottime push, shall be available results and PUBLIC_CLOUD_PERF_PUSH_DATA true/not 0 and _SECRET_PUBLIC_CLOUD_PERF_DB_TOKEN defined</p>
 
 
 </body>
