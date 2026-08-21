@@ -18,6 +18,7 @@
       <li><a href="#desktop_runner_hotkey">desktop_runner_hotkey</a></li>
       <li><a href="#"></a></li>
       <li><a href="#ensure_fullscreen">ensure_fullscreen</a></li>
+      <li><a href="#update_x11_vt">update_x11_vt</a></li>
       <li><a href="#handle_login">handle_login</a></li>
       <li><a href="#handle_logout">handle_logout</a></li>
       <li><a href="#handle_relogin">handle_relogin</a></li>
@@ -67,6 +68,12 @@
 <pre><code>ensure_fullscreen($tag);</code></pre>
 
 <p><code>tag</code> can contain a needle name and is optional, it defaults to yast2-windowborder</p>
+
+<h2 id="update_x11_vt">update_x11_vt</h2>
+
+<pre><code>update_x11_vt()</code></pre>
+
+<p>From a graphical session, read $XDG_VTNR to update the VT of the &quot;x11&quot; openQA console.</p>
 
 <h2 id="handle_login">handle_login</h2>
 

@@ -18,10 +18,8 @@
       <li><a href="#find_img">find_img</a></li>
       <li><a href="#upload_img">upload_img</a></li>
       <li><a href="#img_proof">img_proof</a></li>
-      <li><a href="#parse_img_proof_output">parse_img_proof_output</a></li>
       <li><a href="#create_ssh_key">create_ssh_key</a></li>
       <li><a href="#place_ssh_config">place_ssh_config</a></li>
-      <li><a href="#run_img_proof">run_img_proof</a></li>
       <li><a href="#get_image_id">get_image_id</a></li>
       <li><a href="#get_image_uri">get_image_uri</a></li>
       <li><a href="#create_instance">create_instance</a></li>
@@ -29,6 +27,7 @@
       <li><a href="#on_terraform_apply_timeout">on_terraform_apply_timeout</a></li>
       <li><a href="#on_terraform_destroy_failure">on_terraform_destroy_failure</a></li>
       <li><a href="#terraform_prepare_env">terraform_prepare_env</a></li>
+      <li><a href="#tofu_run_step">_tofu_run_step</a></li>
       <li><a href="#region_out_of_resources">region_out_of_resources</a></li>
       <li><a href="#terraform_apply">terraform_apply</a></li>
       <li><a href="#terraform_destroy">terraform_destroy</a></li>
@@ -68,10 +67,6 @@ Returns a string-name containing distri, version, flavor, arch.</code></pre>
 
 <p>Call img-proof tool and retrieves a hashref as result. Do not die if img-proof call exit with error. $result_hash = { instance =&gt; &lt;publiccloud:instance&gt;, # instance object logfile =&gt; &lt;string&gt;, # the pytest logfile results =&gt; &lt;string&gt;, # json results file tests =&gt; &lt;int&gt;, # total number of tests pass =&gt; &lt;int&gt;, # successful tests skip =&gt; &lt;int&gt;, # skipped tests fail =&gt; &lt;int&gt;, # number of failed tests error =&gt; &lt;int&gt;, # number of errors };</p>
 
-<h2 id="parse_img_proof_output">parse_img_proof_output</h2>
-
-<p>Parse the output from img-proof command and retrieves instance-id, ip and logfile names.</p>
-
 <h2 id="create_ssh_key">create_ssh_key</h2>
 
 <p>Creates an ssh keypair in a given file path by $args{ssh_private_key_file}</p>
@@ -79,10 +74,6 @@ Returns a string-name containing distri, version, flavor, arch.</code></pre>
 <h2 id="place_ssh_config">place_ssh_config</h2>
 
 <p>Creates ~/.ssh/config file with all the common ssh client settings</p>
-
-<h2 id="run_img_proof">run_img_proof</h2>
-
-<p>called by childs within img-proof function</p>
 
 <h2 id="get_image_id">get_image_id</h2>
 
@@ -104,7 +95,9 @@ Returns a string-name containing distri, version, flavor, arch.</code></pre>
 
 <p>Creates multiple instances on the public cloud provider. Retrieves an array of publiccloud::instance objects.</p>
 
-<p><code>image</code> defines the image_id to create the instance. <code>instance_type</code> defines the flavor of the instance. If not specified, it will load it from PUBLIC_CLOUD_INSTANCE_TYPE. <code>timeout</code> Parameter to pass to instance::wait_for_ssh. <code>proceed_on_failure</code> Same as timeout.</p>
+<p><code>image</code> defines the image_id to create the instance. <code>instance_type</code> defines the flavor of the instance. If not specified, it will load it from PUBLIC_CLOUD_INSTANCE_TYPE.</p>
+
+<p>Note: this does not wait for SSH to become available on the created instances, callers are expected to call <code>$instance-&gt;wait_for_ssh()</code> themselves.</p>
 
 <h2 id="on_terraform_apply_timeout">on_terraform_apply_timeout</h2>
 
@@ -117,6 +110,18 @@ Returns a string-name containing distri, version, flavor, arch.</code></pre>
 <h2 id="terraform_prepare_env">terraform_prepare_env</h2>
 
 <p>This method is used to initialize the terraform environment. it is executed only once, guareded by `terraform_env_prepared` member.</p>
+
+<h2 id="tofu_run_step">_tofu_run_step</h2>
+
+<pre><code>my ($ret, $output) = $self-&gt;_tofu_run_step(
+    step    =&gt; &#39;init&#39;,            # short label, also used to name the output file (tf_&lt;step&gt;_output)
+    cmd     =&gt; &#39;tofu init -no-color&#39;,
+    timeout =&gt; 180,               # overall script_retry() timeout, in seconds
+    delay   =&gt; 10,                # seconds to wait between retries
+    retry   =&gt; 6,                 # number of script_retry() attempts
+);</code></pre>
+
+<p>Run a single tofu/terraform step (<code>init</code>, <code>plan</code> or <code>apply</code>) via <code>script_retry()</code>, capturing its combined stdout/stderr to <code>tf_&lt;step</code>_output&gt; so the output survives even on a timeout (unlike letting <code>script_retry</code> die internally with no diagnostics). Always returns the exit code and the captured output rather than dying itself, so the caller decides how to react to a failure.</p>
 
 <h2 id="region_out_of_resources">region_out_of_resources</h2>
 

@@ -24,15 +24,15 @@
       <li><a href="#upload_log">upload_log</a></li>
       <li><a href="#upload_check_logs_tar">upload_check_logs_tar</a></li>
       <li><a href="#wait_for_guestregister">wait_for_guestregister</a></li>
+      <li><a href="#upload_guestregister_diagnostics">_upload_guestregister_diagnostics</a></li>
       <li><a href="#update_instance_ip">update_instance_ip</a></li>
       <li><a href="#wait_for_ssh_unreachable">wait_for_ssh_unreachable</a></li>
+      <li><a href="#wait_for_sudo">wait_for_sudo</a></li>
       <li><a href="#isok">isok</a></li>
       <li><a href="#softreboot">softreboot</a></li>
       <li><a href="#stop">stop</a></li>
       <li><a href="#start">start</a></li>
       <li><a href="#get_state">get_state</a></li>
-      <li><a href="#network_speed_test">network_speed_test</a></li>
-      <li><a href="#check_system_boottime">check_system_boottime</a></li>
     </ul>
   </li>
 </ul><h1>lib/publiccloud/instance.pm</h1>
@@ -135,6 +135,12 @@ C&lt;apply_graceful_timeout&gt; - in case waiting longer than timeout normally s
 
 <p>Run command <code>systemctl is-active guestregister</code> on the instance in a loop and wait till guestregister is ready. If guestregister finish with state failed, a soft-failure will be recorded. If guestregister will not finish within <code>timeout</code> seconds, job dies. In case of BYOS images we checking that service is inactive and quit Returns the time needed to wait for the guestregister to complete.</p>
 
+<h2 id="upload_guestregister_diagnostics">_upload_guestregister_diagnostics</h2>
+
+<pre><code>$self-&gt;_upload_guestregister_diagnostics($log, $name);</code></pre>
+
+<p>Upload <code>$log</code> (e.g. <code>/var/log/cloudregister</code>) and the full <code>journalctl -u guestregister.service</code> output, as a separate asset file. Used by <code>wait_for_guestregister</code> right before dying, so a failure carries the actual registration error instead of just the systemd state.</p>
+
 <h2 id="update_instance_ip">update_instance_ip</h2>
 
 <pre><code>update_instance_ip(timeout =&gt; 600)</code></pre>
@@ -189,6 +195,14 @@ C&lt;apply_graceful_timeout&gt; - in case waiting longer than timeout normally s
 </dd>
 </dl>
 
+<h2 id="wait_for_sudo">wait_for_sudo</h2>
+
+<pre><code>wait_for_sudo([timeout =&gt; 180] [, delay =&gt; 10]);</code></pre>
+
+<p>Wait until the ssh user can run <code>sudo</code> without a password, polling <code>sudo -n true</code> every <code>delay</code> seconds for at most <code>timeout</code> seconds, and die if it never succeeds.</p>
+
+<p>Meant to be used right after <code>wait_for_ssh</code>: sshd can already be reachable while first-boot provisioning is still granting the user its sudo rights.</p>
+
 <h2 id="isok">isok</h2>
 
 <pre><code>isok($exit_code);</code></pre>
@@ -220,18 +234,6 @@ C&lt;apply_graceful_timeout&gt; - in case waiting longer than timeout normally s
 <pre><code>get_state();</code></pre>
 
 <p>Get the status of the instance using the CSP api calls.</p>
-
-<h2 id="network_speed_test">network_speed_test</h2>
-
-<pre><code>network_speed_test();</code></pre>
-
-<p>Test the network speed.</p>
-
-<h2 id="check_system_boottime">check_system_boottime</h2>
-
-<pre><code>check_system_boottime();</code></pre>
-
-<p>Check the system boot time, measured by <code>systemd-analyze</code>, to be under a threshold. Assign the threshold in seconds to PUBLIC_CLOUD_BOOTTIME_MAX in test settings. The boot time is saved in a local json structure, then printed in the test&#39;s logs: when the threshold is exceeded the job is stopped. The routine is skipped when the threshold is undefined or zero.</p>
 
 
 </body>
