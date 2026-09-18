@@ -1,0 +1,109 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>lib/Kernel/brocade_switch.pm</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rel='stylesheet' href='../style.css' />
+</head>
+
+<body>
+
+
+
+<ul id="index"><li><a href="../index.html"><i>&lt;= Back to file list</i></a></li>
+  <li>
+    <ul>
+      <li><a href="#login">login</a></li>
+      <li><a href="#logout">logout</a></li>
+      <li><a href="#get_port">get_port</a></li>
+      <li><a href="#get_all_ports">get_all_ports</a></li>
+      <li><a href="#get_all_enabled_ports">get_all_enabled_ports</a></li>
+      <li><a href="#enable_port">enable_port</a></li>
+      <li><a href="#disable_port">disable_port</a></li>
+      <li><a href="#get_port_diagnostic_state">get_port_diagnostic_state</a></li>
+      <li><a href="#get_port_diagnostic_frame_count">get_port_diagnostic_frame_count</a></li>
+    </ul>
+  </li>
+</ul><h1>lib/Kernel/brocade_switch.pm</h1>
+
+<h2 id="login">login</h2>
+
+<pre><code>login();</code></pre>
+
+<p>Logs in to the Brocade FC switch REST API. Host, user and password are read from the FC_SWITCH_BROCADE_HOST, FC_SWITCH_BROCADE_USER and _SECRET_FC_SWITCH_BROCADE_PASSWORD job settings. Returns the session authorization token (e.g. &quot;Custom_Basic ...&quot;) to pass as the Authorization header on subsequent requests.</p>
+
+<p>Dies on any non-2xx response or a missing token in the response.</p>
+
+<h2 id="logout">logout</h2>
+
+<pre><code>logout($token);</code></pre>
+
+<p>Closes the REST API session identified by $token, as returned by login().</p>
+
+<p>Dies on any non-2xx response.</p>
+
+<h2 id="get_port">get_port</h2>
+
+<pre><code>get_port($token, $port_name);</code></pre>
+
+<p>Fetches the current state of a Fibre Channel port, e.g. get_port($token, &#39;0/1&#39;). Returns the decoded &quot;fibrechannel&quot; hashref from the switch&#39;s response, e.g. containing &#39;is-enabled-state&#39;, &#39;physical-state&#39;, &#39;name&#39; and other port fields.</p>
+
+<p>Dies on any non-2xx response.</p>
+
+<h2 id="get_all_ports">get_all_ports</h2>
+
+<pre><code>get_all_ports($token);</code></pre>
+
+<p>Fetches the current state of every Fibre Channel port on the switch. Returns an array of the same per-port hashrefs as get_port().</p>
+
+<p>Dies on any non-2xx response.</p>
+
+<h2 id="get_all_enabled_ports">get_all_enabled_ports</h2>
+
+<pre><code>get_all_enabled_ports($token);</code></pre>
+
+<p>Fetches every Fibre Channel port that is currently enabled (is-enabled-state true), as returned by get_all_ports().</p>
+
+<p>Dies on any non-2xx response.</p>
+
+<h2 id="enable_port">enable_port</h2>
+
+<pre><code>enable_port($token, $port_name);</code></pre>
+
+<p>Enables a Fibre Channel port, e.g. enable_port($token, &#39;0/1&#39;).</p>
+
+<p>Dies on any non-2xx response.</p>
+
+<h2 id="disable_port">disable_port</h2>
+
+<pre><code>disable_port($token, $port_name);</code></pre>
+
+<p>Disables a Fibre Channel port, e.g. disable_port($token, &#39;0/1&#39;).</p>
+
+<p>Dies on any non-2xx response.</p>
+
+<h2 id="get_port_diagnostic_state">get_port_diagnostic_state</h2>
+
+<pre><code>get_port_diagnostic_state($token, $port_name);</code></pre>
+
+<p>Fetches the result of the most recent ClearLink D_Port diagnostic test on a port, e.g. get_port_diagnostic_state($token, &#39;0/1&#39;). Returns the state string (e.g. &quot;PASSED&quot;).</p>
+
+<p>See the Brocade Fabric OS Troubleshooting and Diagnostics Reference Manual for D_Port diagnostics in general. This is a read-only call and never changes port state.</p>
+
+<p>Dies on any non-2xx response.</p>
+
+<h2 id="get_port_diagnostic_frame_count">get_port_diagnostic_frame_count</h2>
+
+<pre><code>get_port_diagnostic_frame_count($token, $port_name);</code></pre>
+
+<p>Fetches the frame count processed so far by an in-progress or completed D_Port link traffic test on a port, e.g. get_port_diagnostic_frame_count($token, &#39;0/1&#39;).</p>
+
+<p>Dies on any non-2xx response.</p>
+
+
+</body>
+
+</html>
+
+
