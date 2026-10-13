@@ -68,6 +68,7 @@ our @EXPORT = qw(
   detect_worker_ip
   calculate_custodian_ttl
   pc_data_url
+  check_registration
 );
 
 # Check if we are a BYOS test run
@@ -229,20 +230,42 @@ sub registercloudguest {
     if ($version =~ /cloud-regionsrv-client is not installed/) {
         die 'cloud-regionsrv-client should be installed' if !is_container_host;
     }
-
     my $custom_smt = '';
     if ((my $smt_ip = get_var('PUBLIC_CLOUD_SMT_IP')) && (my $smt_fqdn = get_var('PUBLIC_CLOUD_SMT_FQDN')) && (my $smt_fp = get_var('PUBLIC_CLOUD_SMT_FP'))) {
         $custom_smt = "--smt-ip $smt_ip --smt-fqdn $smt_fqdn --smt-fp $smt_fp";
     }
-
     my $cmd_time = time();
-    $instance->ssh_script_retry(cmd => "sudo $suseconnect $custom_smt -r $regcode", timeout => 420, retry => 3, delay => 120);
+    $instance->ssh_script_retry(cmd => "sudo $suseconnect $custom_smt -r $regcode",
+        timeout => 420, retry => 5, delay => 100, die => 0);
     record_info('registration time', 'The registration took ' . (time() - $cmd_time) . ' seconds.');
-
     # If the SSH master socket is active, exit it, so the next SSH command will (re)login
     if (script_run('ssh -O check ' . $instance->username . '@' . $instance->public_ip) == 0) {
         assert_script_run('ssh -O exit ' . $instance->username . '@' . $instance->public_ip);
     }
+}
+
+=head2 check_registration
+
+    check_registration($instance, fail_ok => 0|1);
+
+Check if the instance registration contains one "Registered" at least, otherwise error.
+fail_ok: when 1, will not die on error. Default is 0.
+
+=cut
+
+sub check_registration {
+    my ($instance, %args) = @_;
+    $args{fail_ok} //= 0;
+    # retry for needs in PR https://github.com/os-autoinst/os-autoinst-distri-opensuse/pull/24886
+    $instance->ssh_script_retry(cmd => "sudo SUSEConnect -s",
+        timeout => 30, retry => 5, delay => 30, die => 0);
+    my $out = $instance->ssh_script_output('sudo SUSEConnect -s', proceed_on_failure => 1);
+    unless ($out =~ /"Registered"/m) {
+        record_info('Failed Registration', "Result:\n$out", result => 'fail');
+        return 0 if $args{fail_ok};
+        croak("No enabled repos: the system is not registered\n");
+    }
+    return 1;
 }
 
 =head2 check_dns
@@ -328,11 +351,7 @@ sub register_addons_in_pc {
         # see poo#205101.
         record_info('repos (lr)', $instance->ssh_script_output(
                 cmd => 'sudo zypper lr -u', proceed_on_failure => 1));
-        my $reg = $instance->ssh_script_output(
-            cmd => 'sudo SUSEConnect -s', proceed_on_failure => 1);
-        record_info('SUSEConnect -s', $reg);
-        die 'No enabled repos: the system is not registered'
-          if ($reg =~ /Not Registered/m || $reg !~ /\S/);
+        check_registration($instance);
         die 'No enabled repos on registered system (bsc#1245651)';
     }
     die 'System management is locked by the application with pid xxx (/usr/bin/zypper)' if $ret == publiccloud::zypper::EXIT_LOCKED;

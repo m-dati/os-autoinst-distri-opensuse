@@ -289,9 +289,14 @@ subtest '[register_addons_in_pc] discriminates the no-enabled-repos cause' => su
         my $inst = Test::MockObject->new;
         $inst->mock(username => sub { 'susetest' });
         $inst->mock(public_ip => sub { '1.2.3.4' });
+        $inst->mock(ssh_script_retry => sub {
+                return 0;
+        });
         $inst->mock(ssh_script_output => sub {
-                my (undef, %args) = @_;
-                return $args{cmd} =~ /SUSEConnect/ ? ($output // '') : '';
+                my ($self, @args) = @_;
+                my %args = @args;
+                my $cmd = $args{cmd} // $args[0];
+                return $cmd =~ /SUSEConnect/ ? ($output // '') : '';
         });
         return $inst;
     };
@@ -307,7 +312,7 @@ subtest '[register_addons_in_pc] discriminates the no-enabled-repos cause' => su
     qr/not registered/, 'unregistered system is named as the cause';
     unlike($@, qr/bsc#1245651/, 'the unregistered case does not claim to be bsc#1245651');
 
-    $output = "SUSE Linux Enterprise Server 15 SP6 x86_64 (Activated)\n";
+    $output = "SUSE Linux Enterprise Server 15 SP6 x86_64 (Activated)\n\"Registered\": true\n";
     throws_ok {
         register_addons_in_pc($mock_instance->());
     }

@@ -707,14 +707,17 @@ sub cleanup_cloudinit() {
 
 sub upload_supportconfig_log {
     my ($self, %args) = @_;
-    my $timeout = 600;
-    $timeout += 1400 if is_sle('=12-SP5');
-    if (is_gce()) {
-        my $gcever = $self->ssh_script_output(cmd => q(rpm -q --qf '%{VERSION}' python-gcemetadata), proceed_on_failure => 1);
-        $gcever =~ s/^\s+|\s+$//g;
-        if ($gcever =~ /^\d+(?:\.\d+)*$/ && package_version_cmp($gcever, '1.1.2') < 0) {
-            # bsc#1277388 - dual-stack gcemetadata stall
-            $timeout = 2000;
+    my $timeout = get_var('PUBLIC_CLOUD_SUPPORTCONFIG_TIMEOUT');
+    unless ($timeout) {
+        $timeout = 600;
+        $timeout += 1400 if is_sle('=12-SP5');
+        if (is_gce()) {
+            my $gcever = $self->ssh_script_output(cmd => q(rpm -q --qf '%{VERSION}' python-gcemetadata), proceed_on_failure => 1);
+            $gcever =~ s/^\s+|\s+$//g;
+            if ($gcever =~ /^\d+(?:\.\d+)*$/ && package_version_cmp($gcever, '1.1.2') < 0) {
+                # bsc#1277388 - dual-stack gcemetadata stall
+                $timeout = 2000;
+            }
         }
     }
     my $start = time();
