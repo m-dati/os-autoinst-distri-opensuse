@@ -56,6 +56,8 @@ sub run {
 
     s/https?:\/\/.*\/ibs\/// for @repos;
 
+    return unless (scalar @repos);
+
     # Create list of directories for rsync
     for my $repo (@repos) {
         assert_script_run("echo $repo | tee -a /tmp/transfer_repos.txt");
