@@ -53,11 +53,13 @@ sub run {
     my $ret = script_run($node_cmd, timeout => 2400);
 
     # see https://github.com/os-autoinst/openQA/blob/master/lib/OpenQA/Parser/Format/TAP.pm#L36
-    assert_script_run("sed -i 's/TAP version 13/$tap ../' /tmp/$tap");
-    parse_extra_log(TAP => "/tmp/$tap");
-    upload_logs("/tmp/$spec", failok => 1);
-    my $content = script_output("cat /tmp/$spec /tmp/$tap");
-    diag($content);
+    if (script_run("[[ -f /tmp/$tap ]]") == 0) {
+        assert_script_run("sed -i 's/TAP version 13/$tap ../' /tmp/$tap");
+        parse_extra_log(TAP => "/tmp/$tap");
+        upload_logs("/tmp/$spec", failok => 1);
+        my $content = script_output("cat /tmp/$spec /tmp/$tap");
+        diag($content);
+    }
     croak("command \n'$node_cmd'\n failed") unless $ret == 0;
 
     $self->upload_agama_logs();
